@@ -31,6 +31,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
   final Set<int> _wrong = <int>{};
   GamePhase _phase = GamePhase.memorize;
   Timer? _timer;
+  DateTime? _memorizeStartedAt;
+  Duration _remainingMemorizeTime = Duration.zero;
   int _mistakes = 0;
 
   @override
@@ -56,14 +58,82 @@ class _GameplayScreenState extends State<GameplayScreen> {
       _wrong.clear();
       _phase = GamePhase.memorize;
       _mistakes = 0;
+      _remainingMemorizeTime = widget.config.showTime;
     });
 
+    _scheduleMemorizeTimer(_remainingMemorizeTime);
+  }
+
+  void _scheduleMemorizeTimer(Duration duration) {
     _timer?.cancel();
-    _timer = Timer(widget.config.showTime, () {
+    _memorizeStartedAt = DateTime.now();
+    _timer = Timer(duration, () {
       if (mounted) {
         setState(() => _phase = GamePhase.recall);
       }
     });
+  }
+
+  void _pauseMemorizeTimer() {
+    if (_phase != GamePhase.memorize || _memorizeStartedAt == null) {
+      return;
+    }
+    final elapsed = DateTime.now().difference(_memorizeStartedAt!);
+    _remainingMemorizeTime = widget.config.showTime - elapsed;
+    if (_remainingMemorizeTime.isNegative) {
+      _remainingMemorizeTime = Duration.zero;
+    }
+    _timer?.cancel();
+  }
+
+  void _resumeMemorizeTimer() {
+    if (_phase == GamePhase.memorize) {
+      _scheduleMemorizeTimer(_remainingMemorizeTime);
+    }
+  }
+
+  Future<void> _showPauseDialog() async {
+    _pauseMemorizeTimer();
+    final action = await showDialog<_PauseAction>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Paused'),
+          actions: [
+            TextButton(
+              key: const ValueKey('pause-levels-button'),
+              onPressed: () => Navigator.of(context).pop(_PauseAction.levels),
+              child: const Text('Levels'),
+            ),
+            TextButton(
+              key: const ValueKey('pause-replay-button'),
+              onPressed: () => Navigator.of(context).pop(_PauseAction.replay),
+              child: const Text('Replay'),
+            ),
+            FilledButton(
+              key: const ValueKey('pause-resume-button'),
+              onPressed: () => Navigator.of(context).pop(_PauseAction.resume),
+              child: const Text('Resume'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    if (action == _PauseAction.levels) {
+      Navigator.of(context).pop();
+      return;
+    }
+    if (action == _PauseAction.replay) {
+      _startLevel();
+      return;
+    }
+    _resumeMemorizeTimer();
   }
 
   Future<void> _handleCellTap(int index) async {
@@ -87,7 +157,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
           level: widget.config.level,
           stars: starsForMistakes(_mistakes),
         );
-        await _showResultDialog(won: true);
+        await _showWinDialog();
       }
       return;
     }
@@ -102,11 +172,88 @@ class _GameplayScreenState extends State<GameplayScreen> {
     });
 
     if (_phase == GamePhase.lost) {
-      await _showResultDialog(won: false);
+      await _showLoseDialog();
     }
   }
 
-  Future<void> _showResultDialog({required bool won}) async {
+  Future<void> _showWinDialog() async {
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+    if (!mounted) {
+      return;
+    }
+
+    final isFinalLevel = widget.config.level == 30;
+    final stars = starsForMistakes(_mistakes);
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(isFinalLevel ? 'All levels complete' : 'Level complete'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(3, (index) {
+                  return Icon(
+                    index < stars ? Icons.star : Icons.star_border,
+                    color: const Color(0xFFFFD166),
+                    size: 36,
+                  );
+                }),
+              ),
+              if (isFinalLevel) ...[
+                const SizedBox(height: 16),
+                const Text(
+                  'Congratulations! You completed all available levels.',
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              key: const ValueKey('win-levels-button'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              },
+              child: const Text('Levels'),
+            ),
+            FilledButton.icon(
+              key: const ValueKey('win-replay-button'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _startLevel();
+              },
+              icon: const Icon(Icons.replay_rounded),
+              label: const Text('Replay'),
+            ),
+            if (!isFinalLevel)
+              FilledButton.icon(
+                key: const ValueKey('win-next-button'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute<void>(
+                      builder: (_) => GameplayScreen(
+                        config: buildLevelConfigs()[widget.config.level],
+                        progressRepository: widget.progressRepository,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.arrow_forward_rounded),
+                label: const Text('Next'),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showLoseDialog() async {
     await Future<void>.delayed(const Duration(milliseconds: 350));
     if (!mounted) {
       return;
@@ -117,22 +264,11 @@ class _GameplayScreenState extends State<GameplayScreen> {
       barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          title: Text(won ? 'Level complete' : 'Try again'),
-          content: won
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(3, (index) {
-                    final stars = starsForMistakes(_mistakes);
-                    return Icon(
-                      index < stars ? Icons.star : Icons.star_border,
-                      color: const Color(0xFFFFD166),
-                      size: 36,
-                    );
-                  }),
-                )
-              : const Text('All hearts are gone. Replay this board.'),
+          title: const Text('Try again'),
+          content: const Text('All hearts are gone. Replay this board.'),
           actions: [
             TextButton(
+              key: const ValueKey('lose-levels-button'),
               onPressed: () {
                 Navigator.of(context).pop();
                 Navigator.of(context).pop();
@@ -140,6 +276,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
               child: const Text('Levels'),
             ),
             FilledButton.icon(
+              key: const ValueKey('lose-replay-button'),
               onPressed: () {
                 Navigator.of(context).pop();
                 _startLevel();
@@ -168,6 +305,13 @@ class _GameplayScreenState extends State<GameplayScreen> {
         title: Text('Level ${config.level}'),
         actions: [
           IconButton(
+            key: const ValueKey('pause-button'),
+            tooltip: 'Pause',
+            onPressed: _showPauseDialog,
+            icon: const Icon(Icons.pause_rounded),
+          ),
+          IconButton(
+            key: const ValueKey('replay-button'),
             tooltip: 'Replay',
             onPressed: _startLevel,
             icon: const Icon(Icons.replay_rounded),
@@ -273,6 +417,7 @@ class _Board extends StatelessWidget {
         }
 
         return InkWell(
+          key: ValueKey('board-cell-$index'),
           borderRadius: BorderRadius.circular(8),
           onTap: () => onTap(index),
           child: AnimatedContainer(
@@ -304,3 +449,5 @@ class _Board extends StatelessWidget {
     );
   }
 }
+
+enum _PauseAction { resume, replay, levels }

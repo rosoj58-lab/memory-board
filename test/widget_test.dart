@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memory_board/src/app/memory_board_app.dart';
 import 'package:memory_board/src/data/progress_repository.dart';
+import 'package:memory_board/src/game/game_rules.dart';
 
 void main() {
   testWidgets('main menu opens level selection', (tester) async {
@@ -52,5 +53,64 @@ void main() {
 
     expect(find.text('Levels'), findsOneWidget);
     expect(find.text('Level 2'), findsNothing);
+  });
+
+  testWidgets('pause dialog can resume the level', (tester) async {
+    await tester.pumpWidget(
+      MemoryBoardApp(progressRepository: InMemoryProgressRepository()),
+    );
+
+    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.tap(find.text('1'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('pause-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Paused'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('pause-resume-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Paused'), findsNothing);
+    expect(find.text('Level 1'), findsOneWidget);
+  });
+
+  testWidgets('winning level one unlocks next gameplay screen', (tester) async {
+    final repository = InMemoryProgressRepository();
+    await tester.pumpWidget(
+      MemoryBoardApp(progressRepository: repository),
+    );
+
+    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.tap(find.text('1'));
+    await tester.pumpAndSettle();
+
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump();
+
+    final targets = generateTargets(level: 1, gridSize: 3, objectCount: 3);
+    for (final target in targets) {
+      await tester.tap(find.byKey(ValueKey('board-cell-$target')));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Level complete'), findsOneWidget);
+    expect(find.byKey(const ValueKey('win-next-button')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('win-next-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Level 2'), findsOneWidget);
+    final progress = await repository.load();
+    expect(progress.isLevelUnlocked(2), isTrue);
+    expect(progress.starsForLevel(1), 3);
   });
 }

@@ -99,6 +99,7 @@ class _LevelTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FilledButton.tonal(
+      key: ValueKey('level-tile-$level'),
       onPressed: onPressed,
       style: FilledButton.styleFrom(
         padding: const EdgeInsets.all(6),
@@ -131,4 +132,3 @@ class _LevelTile extends StatelessWidget {
     );
   }
 }
-
