@@ -178,7 +178,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('level-tile-30')),
       300,
-      scrollable: find.byType(GridView),
+      scrollable: find.byType(Scrollable),
     );
     await tester.tap(find.byKey(const ValueKey('level-tile-30')));
     await tester.pumpAndSettle();
