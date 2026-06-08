@@ -1,0 +1,13 @@
+.git
+.github
+.DS_Store
+.env
+.env.*
+.dart_tool
+build
+coverage
+android/.gradle
+android/local.properties
+ios/Pods
+ios/.symlinks
+

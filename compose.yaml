@@ -1,0 +1,17 @@
+services:
+  flutter:
+    build:
+      context: .
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - flutter-pub-cache:/root/.pub-cache
+      - gradle-cache:/root/.gradle
+    ports:
+      - "8080:8080"
+    environment:
+      PUB_CACHE: /root/.pub-cache
+
+volumes:
+  flutter-pub-cache:
+  gradle-cache:
