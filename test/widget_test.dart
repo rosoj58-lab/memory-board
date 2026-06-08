@@ -15,6 +15,16 @@ void main() {
     );
   }
 
+  InMemoryProgressRepository repositoryWithUnlockedLevels(int level) {
+    return InMemoryProgressRepository(
+      PlayerProgress(
+        highestUnlockedLevel: level,
+        bestStarsByLevel: const <int, int>{},
+        tutorialCompleted: true,
+      ),
+    );
+  }
+
   testWidgets('main menu opens level selection', (tester) async {
     await tester.pumpWidget(
       MemoryBoardApp(progressRepository: InMemoryProgressRepository()),
@@ -122,6 +132,81 @@ void main() {
     final progress = await repository.load();
     expect(progress.isLevelUnlocked(2), isTrue);
     expect(progress.starsForLevel(1), 3);
+  });
+
+  testWidgets('three wrong taps show the lose dialog', (tester) async {
+    await tester.pumpWidget(
+      MemoryBoardApp(progressRepository: repositoryWithCompletedTutorial()),
+    );
+
+    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.tap(find.text('1'));
+    await tester.pumpAndSettle();
+
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump();
+
+    final targets = generateTargets(level: 1, gridSize: 3, objectCount: 3);
+    final wrongCells = List.generate(9, (index) => index).where(
+      (cell) => !targets.contains(cell),
+    );
+
+    for (final cell in wrongCells.take(3)) {
+      await tester.tap(find.byKey(ValueKey('board-cell-$cell')));
+      await tester.pump(const Duration(milliseconds: 350));
+    }
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Try again'), findsOneWidget);
+    expect(find.byKey(const ValueKey('lose-replay-button')), findsOneWidget);
+    expect(find.text('Failed'), findsOneWidget);
+  });
+
+  testWidgets('level thirty completes the available MVP levels',
+      (tester) async {
+    final repository = repositoryWithUnlockedLevels(30);
+    await tester.pumpWidget(
+      MemoryBoardApp(progressRepository: repository),
+    );
+
+    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('level-tile-30')),
+      300,
+      scrollable: find.byType(GridView),
+    );
+    await tester.tap(find.byKey(const ValueKey('level-tile-30')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Level 30'), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 2500));
+    await tester.pump();
+
+    final targets = generateTargets(level: 30, gridSize: 5, objectCount: 8);
+    for (final target in targets) {
+      await tester.tap(find.byKey(ValueKey('board-cell-$target')));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    expect(find.text('All levels complete'), findsOneWidget);
+    expect(
+      find.text('Congratulations! You completed all available levels.'),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('win-next-button')), findsNothing);
+
+    final progress = await repository.load();
+    expect(progress.highestUnlockedLevel, 30);
+    expect(progress.starsForLevel(30), 3);
   });
 
   testWidgets('level one tutorial appears once and saves completion',

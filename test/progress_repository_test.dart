@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memory_board/src/data/progress_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   test('initial progress unlocks only level one', () async {
@@ -33,5 +34,21 @@ void main() {
 
     expect(progress.tutorialCompleted, isTrue);
   });
-}
 
+  test('preferences repository persists progress across instances', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final preferences = await SharedPreferences.getInstance();
+
+    var repository = PreferencesProgressRepository(preferences);
+    await repository.completeLevel(level: 1, stars: 2);
+    await repository.completeLevel(level: 1, stars: 1);
+    await repository.markTutorialCompleted();
+
+    repository = PreferencesProgressRepository(preferences);
+    final progress = await repository.load();
+
+    expect(progress.highestUnlockedLevel, 2);
+    expect(progress.starsForLevel(1), 2);
+    expect(progress.tutorialCompleted, isTrue);
+  });
+}
