@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../data/progress_repository.dart';
 import '../game/game_rules.dart';
 import '../game/level_config.dart';
+import 'app_chrome.dart';
 
 enum GamePhase { memorize, recall, won, lost }
 
@@ -355,74 +357,101 @@ class _GameplayScreenState extends State<GameplayScreen> {
         ],
       ),
       body: SafeArea(
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${_correct.length}/${config.objectCount}',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      Row(
-                        children: List.generate(maxHearts, (index) {
-                          final active = index < maxHearts - _mistakes;
-                          return Icon(
-                            active ? Icons.favorite : Icons.heart_broken,
-                            color: active
-                                ? const Color(0xFFFF6B8A)
-                                : Colors.white38,
-                          );
-                        }),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    instruction,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 18),
-                  Expanded(
-                    child: Center(
-                      child: AspectRatio(
-                        aspectRatio: 1,
-                        child: _TutorialBoardStack(
-                          showPointer: _tutorialRecallPromptVisible,
-                          pointerCell: _targets.first,
-                          gridSize: config.gridSize,
-                          child: _Board(
+        child: AppBackground(
+          child: Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${_correct.length}/${config.objectCount}',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        Row(
+                          children: List.generate(maxHearts, (index) {
+                            final active = index < maxHearts - _mistakes;
+                            return _HeartIndicator(
+                              active: active,
+                              index: index,
+                            );
+                          }),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      instruction,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: AppColors.textSoft,
+                          ),
+                    ),
+                    const SizedBox(height: 18),
+                    Expanded(
+                      child: Center(
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: _TutorialBoardStack(
+                            showPointer: _tutorialRecallPromptVisible,
+                            pointerCell: _targets.first,
                             gridSize: config.gridSize,
-                            targets: _targets,
-                            correct: _correct,
-                            wrong: _wrong,
-                            phase: _phase,
-                            onTap: _handleCellTap,
+                            child: _Board(
+                              gridSize: config.gridSize,
+                              targets: _targets,
+                              correct: _correct,
+                              wrong: _wrong,
+                              phase: _phase,
+                              onTap: _handleCellTap,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            if (_tutorialIntroVisible)
-              _TutorialOverlay(
-                title: 'Remember the glowing tiles',
-                body: 'Watch where the spirits appear. They will hide soon.',
-                buttonLabel: 'Start',
-                onPressed: _startTutorialMemorizeStep,
-              )
-            else if (_tutorialRecallPromptVisible)
-              const _TutorialPrompt(
-                text: 'Tap the tiles where the spirits were.',
-              ),
-          ],
+              if (_tutorialIntroVisible)
+                _TutorialOverlay(
+                  title: 'Remember the glowing tiles',
+                  body: 'Watch where the spirits appear. They will hide soon.',
+                  buttonLabel: 'Start',
+                  onPressed: _startTutorialMemorizeStep,
+                )
+              else if (_tutorialRecallPromptVisible)
+                const _TutorialPrompt(
+                  text: 'Tap the tiles where the spirits were.',
+                ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _HeartIndicator extends StatelessWidget {
+  const _HeartIndicator({
+    required this.active,
+    required this.index,
+  });
+
+  final bool active;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 220),
+      transitionBuilder: (child, animation) {
+        return ScaleTransition(scale: animation, child: child);
+      },
+      child: Icon(
+        active ? Icons.favorite : Icons.heart_broken,
+        key: ValueKey('heart-$index-$active'),
+        color: active ? AppColors.danger : Colors.white38,
       ),
     );
   }
@@ -657,50 +686,146 @@ class _Board extends StatelessWidget {
         final isVisible = phase == GamePhase.memorize || isCorrect;
 
         Color color = const Color(0xFF173A45);
-        IconData? icon;
+        bool showSpirit = false;
+        IconData? statusIcon;
         if (isVisible && isTarget) {
-          color = const Color(0xFF1E8F83);
-          icon = Icons.auto_awesome;
+          color = AppColors.surfaceAlt;
+          showSpirit = true;
         }
         if (isCorrect) {
-          color = const Color(0xFF2DD4BF);
-          icon = Icons.auto_awesome;
+          color = const Color(0xFF127865);
+          showSpirit = true;
         }
         if (isWrong) {
-          color = const Color(0xFFC84C5D);
-          icon = Icons.close_rounded;
+          color = const Color(0xFF812D3E);
+          statusIcon = Icons.close_rounded;
         }
 
-        return InkWell(
-          key: ValueKey('board-cell-$index'),
-          borderRadius: BorderRadius.circular(8),
+        return _BoardCell(
+          index: index,
+          color: color,
+          glowing: isVisible && isTarget,
+          showSpirit: showSpirit,
+          statusIcon: statusIcon,
+          isCorrect: isCorrect,
+          isWrong: isWrong,
           onTap: () => onTap(index),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white24),
-              boxShadow: isVisible && isTarget
-                  ? const [
-                      BoxShadow(
-                        color: Color(0x773DEFD6),
-                        blurRadius: 14,
-                        spreadRadius: 1,
-                      ),
-                    ]
-                  : null,
-            ),
-            child: AnimatedScale(
-              scale: icon == null ? 0.85 : 1,
-              duration: const Duration(milliseconds: 180),
-              child: icon == null
-                  ? const SizedBox.shrink()
-                  : Icon(icon, color: Colors.white, size: 30),
-            ),
-          ),
         );
       },
+    );
+  }
+}
+
+class _BoardCell extends StatefulWidget {
+  const _BoardCell({
+    required this.index,
+    required this.color,
+    required this.glowing,
+    required this.showSpirit,
+    required this.isCorrect,
+    required this.isWrong,
+    required this.onTap,
+    this.statusIcon,
+  });
+
+  final int index;
+  final Color color;
+  final bool glowing;
+  final bool showSpirit;
+  final bool isCorrect;
+  final bool isWrong;
+  final IconData? statusIcon;
+  final VoidCallback onTap;
+
+  @override
+  State<_BoardCell> createState() => _BoardCellState();
+}
+
+class _BoardCellState extends State<_BoardCell>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _feedbackController;
+
+  @override
+  void initState() {
+    super.initState();
+    _feedbackController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 260),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _BoardCell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if ((!oldWidget.isCorrect && widget.isCorrect) ||
+        (!oldWidget.isWrong && widget.isWrong)) {
+      _feedbackController.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _feedbackController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _feedbackController,
+      builder: (context, child) {
+        final value = _feedbackController.value;
+        final shake = widget.isWrong ? math.sin(value * math.pi * 6) * 5 : 0.0;
+        final bounce = widget.isCorrect
+            ? 1 + math.sin(value * math.pi) * 0.08
+            : 1.0;
+
+        return Transform.translate(
+          offset: Offset(shake, 0),
+          child: Transform.scale(scale: bounce, child: child),
+        );
+      },
+      child: InkWell(
+        key: ValueKey('board-cell-${widget.index}'),
+        borderRadius: BorderRadius.circular(8),
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          decoration: BoxDecoration(
+            color: widget.color,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: widget.glowing ? AppColors.primary : Colors.white24,
+            ),
+            boxShadow: widget.glowing
+                ? const [
+                    BoxShadow(
+                      color: Color(0x773DEFD6),
+                      blurRadius: 14,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : null,
+          ),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 180),
+            child: widget.showSpirit
+                ? SpiritMark(
+                    key: const ValueKey('cell-spirit'),
+                    size: 34,
+                    glowing: widget.isCorrect,
+                  )
+                : widget.statusIcon == null
+                    ? const SizedBox.shrink(key: ValueKey('cell-empty'))
+                    : Icon(
+                        widget.statusIcon,
+                        key: const ValueKey('cell-status'),
+                        color: Colors.white,
+                        size: 30,
+                      ),
+          ),
+        ),
+      ),
     );
   }
 }

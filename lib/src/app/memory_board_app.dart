@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/progress_repository.dart';
+import '../ui/app_chrome.dart';
 import '../ui/main_menu_screen.dart';
 
 class MemoryBoardApp extends StatelessWidget {
@@ -18,8 +19,18 @@ class MemoryBoardApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF42D6C5),
+          seedColor: AppColors.primary,
           brightness: Brightness.dark,
+        ),
+        scaffoldBackgroundColor: AppColors.background,
+        dialogTheme: DialogThemeData(
+          backgroundColor: AppColors.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: AppColors.background,
+          foregroundColor: Colors.white,
+          centerTitle: true,
         ),
         useMaterial3: true,
       ),
@@ -27,4 +38,3 @@ class MemoryBoardApp extends StatelessWidget {
     );
   }
 }
-

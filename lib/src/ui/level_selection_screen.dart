@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/progress_repository.dart';
 import '../game/level_config.dart';
+import 'app_chrome.dart';
 import 'gameplay_screen.dart';
 
 class LevelSelectionScreen extends StatefulWidget {
@@ -31,52 +32,54 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Levels')),
       body: SafeArea(
-        child: FutureBuilder<PlayerProgress>(
-          future: _progressFuture,
-          builder: (context, snapshot) {
-            final progress = snapshot.data;
-            if (progress == null) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        child: AppBackground(
+          child: FutureBuilder<PlayerProgress>(
+            future: _progressFuture,
+            builder: (context, snapshot) {
+              final progress = snapshot.data;
+              if (progress == null) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            return GridView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: levels.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 5,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemBuilder: (context, index) {
-                final config = levels[index];
-                final unlocked = progress.isLevelUnlocked(config.level);
-                final stars = progress.starsForLevel(config.level);
-                return _LevelTile(
-                  level: config.level,
-                  unlocked: unlocked,
-                  stars: stars,
-                  onPressed: unlocked
-                      ? () async {
-                          await Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => GameplayScreen(
-                                config: config,
-                                progressRepository: widget.progressRepository,
+              return GridView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: levels.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 5,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                ),
+                itemBuilder: (context, index) {
+                  final config = levels[index];
+                  final unlocked = progress.isLevelUnlocked(config.level);
+                  final stars = progress.starsForLevel(config.level);
+                  return _LevelTile(
+                    level: config.level,
+                    unlocked: unlocked,
+                    stars: stars,
+                    onPressed: unlocked
+                        ? () async {
+                            await Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => GameplayScreen(
+                                  config: config,
+                                  progressRepository: widget.progressRepository,
+                                ),
                               ),
-                            ),
-                          );
-                          if (mounted) {
-                            setState(() {
-                              _progressFuture =
-                                  widget.progressRepository.load();
-                            });
+                            );
+                            if (mounted) {
+                              setState(() {
+                                _progressFuture =
+                                    widget.progressRepository.load();
+                              });
+                            }
                           }
-                        }
-                      : null,
-                );
-              },
-            );
-          },
+                        : null,
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -102,6 +105,9 @@ class _LevelTile extends StatelessWidget {
       key: ValueKey('level-tile-$level'),
       onPressed: onPressed,
       style: FilledButton.styleFrom(
+        backgroundColor:
+            unlocked ? AppColors.surfaceAlt : AppColors.surface.withAlpha(150),
+        foregroundColor: unlocked ? Colors.white : Colors.white54,
         padding: const EdgeInsets.all(6),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
@@ -122,7 +128,7 @@ class _LevelTile extends StatelessWidget {
                   return Icon(
                     index < stars ? Icons.star : Icons.star_border,
                     size: 12,
-                    color: const Color(0xFFFFD166),
+                    color: AppColors.gold,
                   );
                 }),
               ),
