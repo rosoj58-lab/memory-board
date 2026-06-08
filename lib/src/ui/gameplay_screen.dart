@@ -228,27 +228,9 @@ class _GameplayScreenState extends State<GameplayScreen> {
       builder: (context) {
         return AlertDialog(
           title: Text(isFinalLevel ? 'All levels complete' : 'Level complete'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(3, (index) {
-                  return Icon(
-                    index < stars ? Icons.star : Icons.star_border,
-                    color: const Color(0xFFFFD166),
-                    size: 36,
-                  );
-                }),
-              ),
-              if (isFinalLevel) ...[
-                const SizedBox(height: 16),
-                const Text(
-                  'Congratulations! You completed all available levels.',
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ],
+          content: _WinDialogContent(
+            stars: stars,
+            isFinalLevel: isFinalLevel,
           ),
           actions: [
             TextButton(
@@ -809,6 +791,16 @@ class _BoardCellState extends State<_BoardCell>
           ),
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 180),
+            transitionBuilder: (child, animation) {
+              final eased = CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutBack,
+              );
+              return FadeTransition(
+                opacity: animation,
+                child: ScaleTransition(scale: eased, child: child),
+              );
+            },
             child: widget.showSpirit
                 ? SpiritMark(
                     key: const ValueKey('cell-spirit'),
@@ -831,3 +823,132 @@ class _BoardCellState extends State<_BoardCell>
 }
 
 enum _PauseAction { resume, replay, levels }
+
+class _WinDialogContent extends StatefulWidget {
+  const _WinDialogContent({
+    required this.stars,
+    required this.isFinalLevel,
+  });
+
+  final int stars;
+  final bool isFinalLevel;
+
+  @override
+  State<_WinDialogContent> createState() => _WinDialogContentState();
+}
+
+class _WinDialogContentState extends State<_WinDialogContent>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 148,
+              height: 64,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  CustomPaint(
+                    size: const Size(148, 64),
+                    painter: _WinParticlesPainter(_controller.value),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(3, (index) {
+                      final threshold = 0.18 + index * 0.18;
+                      final visible = _controller.value >= threshold;
+                      return AnimatedScale(
+                        duration: const Duration(milliseconds: 180),
+                        scale: visible ? 1 : 0.4,
+                        curve: Curves.easeOutBack,
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 180),
+                          opacity: visible ? 1 : 0,
+                          child: Icon(
+                            index < widget.stars
+                                ? Icons.star
+                                : Icons.star_border,
+                            color: AppColors.gold,
+                            size: 40,
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ],
+              ),
+            ),
+            if (widget.isFinalLevel) ...[
+              const SizedBox(height: 16),
+              const Text(
+                'Congratulations! You completed all available levels.',
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _WinParticlesPainter extends CustomPainter {
+  const _WinParticlesPainter(this.progress);
+
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final eased = Curves.easeOut.transform(progress.clamp(0, 1).toDouble());
+    final opacity = (1 - progress).clamp(0, 1).toDouble();
+    final center = Offset(size.width / 2, size.height / 2);
+    final paint = Paint()
+      ..color = AppColors.primary.withAlpha((180 * opacity).toInt());
+    const angles = <double>[
+      -2.8,
+      -2.1,
+      -1.35,
+      -0.55,
+      0.25,
+      0.95,
+      1.65,
+      2.35,
+    ];
+
+    for (var i = 0; i < angles.length; i += 1) {
+      final distance = 14 + eased * (18 + i % 3 * 5);
+      final offset = Offset(
+        math.cos(angles[i]) * distance,
+        math.sin(angles[i]) * distance,
+      );
+      canvas.drawCircle(center + offset, 2.2, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _WinParticlesPainter oldDelegate) {
+    return oldDelegate.progress != progress;
+  }
+}
