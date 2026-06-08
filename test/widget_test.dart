@@ -5,6 +5,16 @@ import 'package:memory_board/src/data/progress_repository.dart';
 import 'package:memory_board/src/game/game_rules.dart';
 
 void main() {
+  InMemoryProgressRepository repositoryWithCompletedTutorial() {
+    return InMemoryProgressRepository(
+      const PlayerProgress(
+        highestUnlockedLevel: 1,
+        bestStarsByLevel: <int, int>{},
+        tutorialCompleted: true,
+      ),
+    );
+  }
+
   testWidgets('main menu opens level selection', (tester) async {
     await tester.pumpWidget(
       MemoryBoardApp(progressRepository: InMemoryProgressRepository()),
@@ -24,7 +34,7 @@ void main() {
 
   testWidgets('level one shows tutorial instruction first', (tester) async {
     await tester.pumpWidget(
-      MemoryBoardApp(progressRepository: InMemoryProgressRepository()),
+      MemoryBoardApp(progressRepository: repositoryWithCompletedTutorial()),
     );
 
     await tester.tap(find.byIcon(Icons.play_arrow_rounded));
@@ -57,7 +67,7 @@ void main() {
 
   testWidgets('pause dialog can resume the level', (tester) async {
     await tester.pumpWidget(
-      MemoryBoardApp(progressRepository: InMemoryProgressRepository()),
+      MemoryBoardApp(progressRepository: repositoryWithCompletedTutorial()),
     );
 
     await tester.tap(find.byIcon(Icons.play_arrow_rounded));
@@ -79,7 +89,7 @@ void main() {
   });
 
   testWidgets('winning level one unlocks next gameplay screen', (tester) async {
-    final repository = InMemoryProgressRepository();
+    final repository = repositoryWithCompletedTutorial();
     await tester.pumpWidget(
       MemoryBoardApp(progressRepository: repository),
     );
@@ -112,5 +122,46 @@ void main() {
     final progress = await repository.load();
     expect(progress.isLevelUnlocked(2), isTrue);
     expect(progress.starsForLevel(1), 3);
+  });
+
+  testWidgets('level one tutorial appears once and saves completion',
+      (tester) async {
+    final repository = InMemoryProgressRepository();
+    await tester.pumpWidget(
+      MemoryBoardApp(progressRepository: repository),
+    );
+
+    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.tap(find.text('1'));
+    await tester.pumpAndSettle();
+    await tester.pump();
+
+    expect(find.text('Watch where the spirits appear. They will hide soon.'),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('tutorial-start-button')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('tutorial-start-button')));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('tutorial-recall-prompt')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('tutorial-hand-pointer')), findsOneWidget);
+
+    final targets = generateTargets(level: 1, gridSize: 3, objectCount: 3);
+    for (final target in targets) {
+      await tester.tap(find.byKey(ValueKey('board-cell-$target')));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    final progress = await repository.load();
+    expect(progress.tutorialCompleted, isTrue);
+    expect(progress.isLevelUnlocked(2), isTrue);
   });
 }
