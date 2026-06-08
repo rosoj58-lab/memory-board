@@ -1,3 +1,5 @@
+name: memory-board
+
 services:
   flutter:
     build:
