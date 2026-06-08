@@ -64,3 +64,9 @@ gh repo create memory-board --public --source=. --remote=origin --push
 ## MVP Direction
 
 The first MVP is one level mode with 30 levels, one board per level, 3 hearts, 1-3 stars, local progress saving, a level 1 tutorial, simple static assets, and basic feedback animations.
+
+Detailed implementation plan:
+
+```text
+docs/mvp-implementation-plan.md
+```

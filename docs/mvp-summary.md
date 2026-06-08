@@ -1,5 +1,7 @@
 # Memory Board MVP Summary
 
+This is the short product summary. The working build plan is in [mvp-implementation-plan.md](mvp-implementation-plan.md).
+
 ## Product
 
 Memory Board is a simple visual memory puzzle for mobile. The player sees objects on a grid, memorizes their positions, waits for them to disappear, then taps the hidden cells from memory.
@@ -13,7 +15,6 @@ Memory Board is a simple visual memory puzzle for mobile. The player sees object
 
 ## MVP Scope
 
-- Splash screen
 - Main menu
 - Level selection
 - Gameplay screen
@@ -27,9 +28,12 @@ Memory Board is a simple visual memory puzzle for mobile. The player sees object
 - 1-3 star rating
 - Level 1 tutorial only
 - Local progress saving
-- Simple static assets
+- Simple original or license-safe static assets
 - Basic animations
-- No music in MVP
+- No music or sound effects in MVP
+- Vibration/haptics only
+
+Splash screen and app icon are included in the MVP, but they should be generated after the first original logo/icon asset is created. They should not block implementation of the playable game loop.
 
 ## Core Loop
 
@@ -63,4 +67,3 @@ Memory Board is a simple visual memory puzzle for mobile. The player sees object
 ## Future Ideas
 
 Future versions can add endless trainer mode, 100 levels, order/sequence memory, object type filtering, color filtering, hints, sound effects, achievements, and daily challenges.
-
