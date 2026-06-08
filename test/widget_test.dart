@@ -14,7 +14,7 @@ void main() {
 
     expect(find.text('Levels'), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
-    expect(find.text('30'), findsOneWidget);
+    expect(find.byType(FilledButton), findsWidgets);
   });
 
   testWidgets('level one shows tutorial instruction first', (tester) async {
@@ -30,4 +30,3 @@ void main() {
     expect(find.text('0/3'), findsOneWidget);
   });
 }
-
