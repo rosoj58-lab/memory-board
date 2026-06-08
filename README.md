@@ -26,19 +26,20 @@ Run checks:
 
 ```sh
 docker compose run --rm flutter flutter pub get
+docker compose run --rm flutter flutter analyze
 docker compose run --rm flutter flutter test
 ```
 
 Build an Android APK for a real phone:
 
 ```sh
-docker compose run --rm flutter flutter build apk
+docker compose run --rm flutter flutter build apk --debug
 ```
 
 The APK will be available at:
 
 ```text
-build/app/outputs/flutter-apk/app-release.apk
+build/app/outputs/flutter-apk/app-debug.apk
 ```
 
 For development testing, the app can also run as a Flutter web build so Codex can inspect screens and click through them with browser tooling:
@@ -55,10 +56,30 @@ http://localhost:8080
 
 ## GitHub
 
-Create the remote repository from this folder:
+The project is pushed to:
+
+```text
+https://github.com/rosoj58-lab/memory-board
+```
+
+The Android workflow runs on every push to `main`. It verifies the app and uploads a debug APK artifact.
+
+Download the latest successful APK artifact:
 
 ```sh
-gh repo create memory-board --public --source=. --remote=origin --push
+scripts/download_android_apk.sh
+```
+
+The downloaded APK is written to:
+
+```text
+artifacts/memory-board-debug-apk/app-debug.apk
+```
+
+Install it on a connected Android phone with `adb`:
+
+```sh
+scripts/install_android_debug_apk.sh
 ```
 
 ## MVP Direction
@@ -70,3 +91,11 @@ Detailed implementation plan:
 ```text
 docs/mvp-implementation-plan.md
 ```
+
+## Phone Test Checklist
+
+- Install the debug APK on Android.
+- Play levels 1, 8, 9, 22, 23, and 30.
+- Check that 3x3, 4x4, and 5x5 boards fit without clipped UI.
+- Check that haptics feel useful and not annoying.
+- Confirm the tutorial appears once, progress persists, and level 30 ends with the final completion dialog.
