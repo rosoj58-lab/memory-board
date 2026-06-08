@@ -11,6 +11,7 @@
 .pub/
 build/
 coverage/
+artifacts/
 
 # Android
 android/.gradle/
@@ -39,4 +40,3 @@ ios/Runner.xcodeproj/project.xcworkspace/xcuserdata/
 .idea/
 .vscode/
 *.iml
-
