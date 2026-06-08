@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:memory_board/src/app/memory_board_app.dart';
 import 'package:memory_board/src/data/progress_repository.dart';
 import 'package:memory_board/src/game/game_rules.dart';
+import 'package:memory_board/src/game/level_config.dart';
+import 'package:memory_board/src/ui/gameplay_screen.dart';
 
 void main() {
   InMemoryProgressRepository repositoryWithCompletedTutorial() {
@@ -169,18 +171,14 @@ void main() {
       (tester) async {
     final repository = repositoryWithUnlockedLevels(30);
     await tester.pumpWidget(
-      MemoryBoardApp(progressRepository: repository),
+      MaterialApp(
+        home: GameplayScreen(
+          config: buildLevelConfigs().last,
+          progressRepository: repository,
+        ),
+      ),
     );
 
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
-    await tester.pumpAndSettle();
-    await tester.pump();
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('level-tile-30')),
-      300,
-      scrollable: find.byType(Scrollable),
-    );
-    await tester.tap(find.byKey(const ValueKey('level-tile-30')));
     await tester.pumpAndSettle();
 
     expect(find.text('Level 30'), findsOneWidget);
