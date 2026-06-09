@@ -76,8 +76,8 @@ void main() {
     await tester.pump();
 
     expect(find.text('Level 4'), findsOneWidget);
-    expect(find.text('Board 3x3'), findsOneWidget);
-    expect(find.text('Find 4 spirits'), findsOneWidget);
+    expect(find.text('Board 4x4'), findsOneWidget);
+    expect(find.text('Find 6 spirits'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('next-challenge-start-button')));
     await tester.pumpAndSettle();
@@ -261,6 +261,19 @@ void main() {
 
     expect(find.text('Level complete'), findsOneWidget);
     expect(find.byKey(const ValueKey('win-next-button')), findsOneWidget);
+    final titleCenter = tester.getCenter(find.text('Level complete'));
+    final starsCenter =
+        tester.getCenter(find.byKey(const ValueKey('win-stars-row')));
+    final levelsCenter =
+        tester.getCenter(find.byKey(const ValueKey('win-levels-button')));
+    final replayCenter =
+        tester.getCenter(find.byKey(const ValueKey('win-replay-button')));
+    final nextCenter =
+        tester.getCenter(find.byKey(const ValueKey('win-next-button')));
+    expect((starsCenter.dx - titleCenter.dx).abs(), lessThan(2));
+    expect((levelsCenter.dx - titleCenter.dx).abs(), lessThan(2));
+    expect((replayCenter.dx - titleCenter.dx).abs(), lessThan(2));
+    expect((nextCenter.dx - titleCenter.dx).abs(), lessThan(2));
 
     await tester.tap(find.byKey(const ValueKey('win-next-button')));
     await tester.pumpAndSettle();
@@ -353,14 +366,14 @@ void main() {
 
     expect(find.text('Level 30'), findsOneWidget);
     expect(find.byKey(const ValueKey('level-info-strip')), findsOneWidget);
-    expect(find.text('5x5'), findsOneWidget);
-    expect(find.text('8 spirits'), findsOneWidget);
-    expect(find.text('2.5s watch'), findsOneWidget);
+    expect(find.text('6x6'), findsOneWidget);
+    expect(find.text('20 spirits'), findsOneWidget);
+    expect(find.text('2s watch'), findsOneWidget);
 
-    await tester.pump(const Duration(milliseconds: 2500));
+    await tester.pump(const Duration(seconds: 2));
     await tester.pump();
 
-    final targets = generateTargets(level: 30, gridSize: 5, objectCount: 8);
+    final targets = generateTargets(level: 30, gridSize: 6, objectCount: 20);
     for (final target in targets) {
       await tester.tap(find.byKey(ValueKey('board-cell-$target')));
       await tester.pump(const Duration(milliseconds: 50));

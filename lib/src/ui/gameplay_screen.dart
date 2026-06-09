@@ -258,48 +258,34 @@ class _GameplayScreenState extends State<GameplayScreen> {
       barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          title: Text(isFinalLevel ? 'All levels complete' : 'Level complete'),
+          contentPadding: const EdgeInsets.fromLTRB(24, 26, 24, 22),
           content: _WinDialogContent(
+            title: isFinalLevel ? 'All levels complete' : 'Level complete',
             stars: stars,
             isFinalLevel: isFinalLevel,
-          ),
-          actions: [
-            TextButton(
-              key: const ValueKey('win-levels-button'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
-              },
-              child: const Text('Levels'),
-            ),
-            FilledButton.icon(
-              key: const ValueKey('win-replay-button'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                _startLevel();
-              },
-              icon: const Icon(Icons.replay_rounded),
-              label: const Text('Replay'),
-            ),
-            if (!isFinalLevel)
-              FilledButton.icon(
-                key: const ValueKey('win-next-button'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute<void>(
-                      builder: (_) => GameplayScreen(
-                        config: buildLevelConfigs()[widget.config.level],
-                        progressRepository: widget.progressRepository,
-                        settingsRepository: widget.settingsRepository,
+            onLevels: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pop();
+            },
+            onReplay: () {
+              Navigator.of(context).pop();
+              _startLevel();
+            },
+            onNext: isFinalLevel
+                ? null
+                : () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute<void>(
+                        builder: (_) => GameplayScreen(
+                          config: buildLevelConfigs()[widget.config.level],
+                          progressRepository: widget.progressRepository,
+                          settingsRepository: widget.settingsRepository,
+                        ),
                       ),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.arrow_forward_rounded),
-                label: const Text('Next'),
-              ),
-          ],
+                    );
+                  },
+          ),
         );
       },
     );
@@ -316,27 +302,17 @@ class _GameplayScreenState extends State<GameplayScreen> {
       barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Try again'),
-          content: const Text('All hearts are gone. Replay this board.'),
-          actions: [
-            TextButton(
-              key: const ValueKey('lose-levels-button'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
-              },
-              child: const Text('Levels'),
-            ),
-            FilledButton.icon(
-              key: const ValueKey('lose-replay-button'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                _startLevel();
-              },
-              icon: const Icon(Icons.replay_rounded),
-              label: const Text('Replay'),
-            ),
-          ],
+          contentPadding: const EdgeInsets.fromLTRB(24, 26, 24, 22),
+          content: _LoseDialogContent(
+            onLevels: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pop();
+            },
+            onReplay: () {
+              Navigator.of(context).pop();
+              _startLevel();
+            },
+          ),
         );
       },
     );
@@ -938,12 +914,20 @@ enum _PauseAction { resume, replay, levels }
 
 class _WinDialogContent extends StatefulWidget {
   const _WinDialogContent({
+    required this.title,
     required this.stars,
     required this.isFinalLevel,
+    required this.onLevels,
+    required this.onReplay,
+    required this.onNext,
   });
 
+  final String title;
   final int stars;
   final bool isFinalLevel;
+  final VoidCallback onLevels;
+  final VoidCallback onReplay;
+  final VoidCallback? onNext;
 
   @override
   State<_WinDialogContent> createState() => _WinDialogContentState();
@@ -975,8 +959,18 @@ class _WinDialogContentState extends State<_WinDialogContent>
       builder: (context, child) {
         return Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Text(
+              widget.title,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: 20),
             SizedBox(
+              key: const ValueKey('win-stars-row'),
               width: 148,
               height: 64,
               child: Stack(
@@ -1019,9 +1013,119 @@ class _WinDialogContentState extends State<_WinDialogContent>
                 textAlign: TextAlign.center,
               ),
             ],
+            const SizedBox(height: 22),
+            _DialogActionButton(
+              key: const ValueKey('win-levels-button'),
+              onPressed: widget.onLevels,
+              child: const Text('Levels'),
+            ),
+            const SizedBox(height: 8),
+            _DialogActionButton(
+              key: const ValueKey('win-replay-button'),
+              onPressed: widget.onReplay,
+              icon: Icons.replay_rounded,
+              child: const Text('Replay'),
+            ),
+            if (widget.onNext != null) ...[
+              const SizedBox(height: 8),
+              _DialogActionButton(
+                key: const ValueKey('win-next-button'),
+                onPressed: widget.onNext!,
+                icon: Icons.arrow_forward_rounded,
+                child: const Text('Next'),
+              ),
+            ],
           ],
         );
       },
+    );
+  }
+}
+
+class _LoseDialogContent extends StatelessWidget {
+  const _LoseDialogContent({
+    required this.onLevels,
+    required this.onReplay,
+  });
+
+  final VoidCallback onLevels;
+  final VoidCallback onReplay;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          'Try again',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+        const SizedBox(height: 14),
+        const Text(
+          'All hearts are gone. Replay this board.',
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 22),
+        _DialogActionButton(
+          key: const ValueKey('lose-levels-button'),
+          onPressed: onLevels,
+          child: const Text('Levels'),
+        ),
+        const SizedBox(height: 8),
+        _DialogActionButton(
+          key: const ValueKey('lose-replay-button'),
+          onPressed: onReplay,
+          icon: Icons.replay_rounded,
+          child: const Text('Replay'),
+        ),
+      ],
+    );
+  }
+}
+
+class _DialogActionButton extends StatelessWidget {
+  const _DialogActionButton({
+    required this.onPressed,
+    required this.child,
+    this.icon,
+    super.key,
+  });
+
+  static const double width = 184;
+
+  final VoidCallback onPressed;
+  final Widget child;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final buttonChild = icon == null
+        ? child
+        : Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon),
+              const SizedBox(width: 8),
+              child,
+            ],
+          );
+
+    return SizedBox(
+      width: width,
+      child: icon == null
+          ? TextButton(
+              onPressed: onPressed,
+              child: buttonChild,
+            )
+          : FilledButton(
+              onPressed: onPressed,
+              child: buttonChild,
+            ),
     );
   }
 }
