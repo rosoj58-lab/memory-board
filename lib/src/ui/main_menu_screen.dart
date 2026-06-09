@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../app/route_observer.dart';
 import '../data/progress_repository.dart';
 import '../data/settings_repository.dart';
+import '../game/level_config.dart';
 import 'app_chrome.dart';
+import 'gameplay_screen.dart';
 import 'level_selection_screen.dart';
 import 'settings_dialog.dart';
 
@@ -52,9 +54,52 @@ class _MainMenuScreenState extends State<MainMenuScreen> with RouteAware {
 
   @override
   void didPopNext() {
+    _reloadProgress();
+  }
+
+  void _reloadProgress() {
     setState(() {
       _progressFuture = widget.progressRepository.load();
     });
+  }
+
+  Future<void> _openSettings() async {
+    final reset = await showSettingsDialog(
+      context: context,
+      settingsRepository: widget.settingsRepository,
+      progressRepository: widget.progressRepository,
+    );
+    if (reset && mounted) {
+      _reloadProgress();
+    }
+  }
+
+  void _openLevels() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => LevelSelectionScreen(
+          progressRepository: widget.progressRepository,
+          settingsRepository: widget.settingsRepository,
+        ),
+      ),
+    );
+  }
+
+  void _startCurrentLevel(PlayerProgress progress) {
+    final levels = buildLevelConfigs();
+    final levelIndex = (progress.highestUnlockedLevel - 1).clamp(
+      0,
+      levels.length - 1,
+    );
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GameplayScreen(
+          config: levels[levelIndex],
+          progressRepository: widget.progressRepository,
+          settingsRepository: widget.settingsRepository,
+        ),
+      ),
+    );
   }
 
   @override
@@ -65,17 +110,13 @@ class _MainMenuScreenState extends State<MainMenuScreen> with RouteAware {
           child: Stack(
             children: [
               Positioned(
-                top: 12,
-                right: 16,
-                child: TextButton(
+                top: 8,
+                right: 12,
+                child: IconButton.filledTonal(
                   key: const ValueKey('menu-settings-button'),
-                  onPressed: () {
-                    showSettingsDialog(
-                      context: context,
-                      settingsRepository: widget.settingsRepository,
-                    );
-                  },
-                  child: const Text('Settings'),
+                  tooltip: 'Settings',
+                  onPressed: _openSettings,
+                  icon: const Icon(Icons.settings_rounded),
                 ),
               ),
               Center(
@@ -114,26 +155,42 @@ class _MainMenuScreenState extends State<MainMenuScreen> with RouteAware {
                         FutureBuilder<PlayerProgress>(
                           future: _progressFuture,
                           builder: (context, snapshot) {
+                            final progress = snapshot.data;
+                            final hasStarted = progress != null &&
+                                (progress.tutorialCompleted ||
+                                    progress.bestStarsByLevel.isNotEmpty ||
+                                    progress.highestUnlockedLevel > 1);
                             return _MenuProgressSummary(
-                              progress: snapshot.data,
+                              progress: progress,
+                              hasStarted: hasStarted,
                             );
                           },
                         ),
                         const SizedBox(height: 26),
-                        FilledButton.icon(
-                          key: const ValueKey('menu-play-button'),
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => LevelSelectionScreen(
-                                  progressRepository: widget.progressRepository,
-                                  settingsRepository: widget.settingsRepository,
-                                ),
-                              ),
+                        FutureBuilder<PlayerProgress>(
+                          future: _progressFuture,
+                          builder: (context, snapshot) {
+                            final progress = snapshot.data;
+                            final hasStarted = progress != null &&
+                                (progress.tutorialCompleted ||
+                                    progress.bestStarsByLevel.isNotEmpty ||
+                                    progress.highestUnlockedLevel > 1);
+                            return FilledButton.icon(
+                              key: const ValueKey('menu-start-button'),
+                              onPressed: progress == null
+                                  ? null
+                                  : () => _startCurrentLevel(progress),
+                              icon: const Icon(Icons.play_arrow_rounded),
+                              label: Text(hasStarted ? 'Continue' : 'Start'),
                             );
                           },
-                          icon: const Icon(Icons.play_arrow_rounded),
-                          label: const Text('Play'),
+                        ),
+                        const SizedBox(height: 10),
+                        OutlinedButton.icon(
+                          key: const ValueKey('menu-levels-button'),
+                          onPressed: _openLevels,
+                          icon: const Icon(Icons.grid_view_rounded),
+                          label: const Text('Levels'),
                         ),
                       ],
                     ),
@@ -149,12 +206,16 @@ class _MainMenuScreenState extends State<MainMenuScreen> with RouteAware {
 }
 
 class _MenuProgressSummary extends StatelessWidget {
-  const _MenuProgressSummary({required this.progress});
+  const _MenuProgressSummary({
+    required this.progress,
+    required this.hasStarted,
+  });
 
   static const int maxLevels = 30;
   static const int maxStars = maxLevels * 3;
 
   final PlayerProgress? progress;
+  final bool hasStarted;
 
   @override
   Widget build(BuildContext context) {
@@ -197,7 +258,9 @@ class _MenuProgressSummary extends StatelessWidget {
               runSpacing: 8,
               children: [
                 _MenuProgressMetric(
-                    label: 'Stars', value: '$totalStars/$maxStars'),
+                  label: hasStarted ? 'Stars' : 'Goal',
+                  value: '$totalStars/$maxStars',
+                ),
                 _MenuProgressMetric(
                   label: 'Unlocked',
                   value: '$unlocked/$maxLevels',

@@ -22,6 +22,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/branding/memory_board_icon.png
+    - assets/images/magic_sparks_background.png
 
 flutter_launcher_icons:
   android: true

@@ -113,7 +113,15 @@ scripts/install_android_debug_apk.sh
 
 ## MVP Direction
 
-The first MVP is one level mode with 30 levels, one board per level, 3 hearts, 1-3 stars, local progress saving, a level 1 tutorial, simple static assets, and basic feedback animations.
+The first MVP is a Magic Sparks memory game with 30 levels, one board per level, 3 hearts, 1-3 stars, local progress saving, a level 1 tutorial, code-native original spark visuals, haptics, and basic feedback animations.
+
+Current UX direction:
+
+- New player taps `Start` and enters Level 1 tutorial.
+- Returning player taps `Continue` and enters the newest unlocked unfinished level.
+- `Levels` opens the level selection screen for replaying unlocked levels.
+- Settings contains vibration and reset progress.
+- No music or sound effects in MVP.
 
 Detailed implementation plan:
 
@@ -124,7 +132,7 @@ docs/mvp-implementation-plan.md
 ## Phone Test Checklist
 
 - Install the debug APK on Android.
-- Play levels 1, 8, 9, 22, 23, and 30.
-- Check that 3x3, 4x4, and 5x5 boards fit without clipped UI.
+- Play levels 1, 2, 7, 10, 14, 23, and 30.
+- Check that 3x3, 4x4, 5x5, and 6x6 boards fit without clipped UI.
 - Check that haptics feel useful and not annoying.
-- Confirm the tutorial appears once, progress persists, and level 30 ends with the final completion dialog.
+- Confirm the tutorial appears once, progress persists, settings reset is confirmed, and level 30 ends with the final completion dialog.

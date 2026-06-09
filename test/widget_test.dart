@@ -46,11 +46,12 @@ void main() {
     await tester.pumpWidget(testApp());
 
     expect(find.text('Memory Board'), findsOneWidget);
-    expect(find.text('Play'), findsOneWidget);
+    expect(find.text('Start'), findsOneWidget);
+    expect(find.text('Levels'), findsOneWidget);
     expect(find.byKey(const ValueKey('menu-progress-summary')), findsOneWidget);
-    expect(find.text('Stars 0/90'), findsOneWidget);
+    expect(find.text('Goal 0/90'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
+    await tester.tap(find.byKey(const ValueKey('menu-levels-button')));
     await tester.pumpAndSettle();
     await tester.pump();
 
@@ -63,8 +64,37 @@ void main() {
     expect(find.text('Level 1'), findsOneWidget);
     expect(find.text('Board 3x3'), findsOneWidget);
     expect(find.text('Find 3 sparks'), findsOneWidget);
-    expect(find.text('Watch 4s'), findsOneWidget);
+    expect(find.text('Remember 4s'), findsOneWidget);
+    expect(find.text('Next'), findsOneWidget);
     expect(find.byType(FilledButton), findsWidgets);
+  });
+
+  testWidgets('main start and continue open gameplay directly', (tester) async {
+    await tester.pumpWidget(testApp());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Start'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('menu-start-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Level 1'), findsOneWidget);
+    expect(find.text('Remember the glowing tiles'), findsWidgets);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.pumpWidget(
+      testApp(progressRepository: repositoryWithUnlockedLevels(4)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Continue'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('menu-start-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Level 4'), findsOneWidget);
+    expect(find.text('Remember the glowing tiles'), findsOneWidget);
   });
 
   testWidgets('next challenge start opens the newest unlocked level',
@@ -73,7 +103,7 @@ void main() {
       testApp(progressRepository: repositoryWithUnlockedLevels(4)),
     );
 
-    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
+    await tester.tap(find.byKey(const ValueKey('menu-levels-button')));
     await tester.pumpAndSettle();
     await tester.pump();
 
@@ -131,7 +161,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
+    await tester.tap(find.byKey(const ValueKey('menu-levels-button')));
     await tester.pumpAndSettle();
     await tester.pump();
 
@@ -145,7 +175,7 @@ void main() {
       testApp(progressRepository: repositoryWithCompletedTutorial()),
     );
 
-    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
+    await tester.tap(find.byKey(const ValueKey('menu-levels-button')));
     await tester.pumpAndSettle();
     await tester.pump();
     await tester.tap(find.text('1'));
@@ -156,8 +186,8 @@ void main() {
     expect(find.byKey(const ValueKey('level-info-strip')), findsOneWidget);
     expect(find.text('3x3'), findsOneWidget);
     expect(find.text('3 sparks'), findsOneWidget);
-    expect(find.text('4s watch'), findsOneWidget);
-    expect(find.text('0/3'), findsOneWidget);
+    expect(find.text('4s remember'), findsOneWidget);
+    expect(find.text('0/3 found'), findsOneWidget);
   });
 
   testWidgets('locked level cannot be opened', (tester) async {
@@ -165,7 +195,7 @@ void main() {
       testApp(),
     );
 
-    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
+    await tester.tap(find.byKey(const ValueKey('menu-levels-button')));
     await tester.pumpAndSettle();
     await tester.pump();
 
@@ -190,17 +220,21 @@ void main() {
       testApp(progressRepository: repository),
     );
 
-    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
+    await tester.tap(find.byKey(const ValueKey('menu-levels-button')));
     await tester.pumpAndSettle();
     await tester.pump();
 
     expect(find.text('Unlocked 3/30'), findsOneWidget);
     expect(find.text('Stars 4/90'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('reset-progress-button')));
+    await tester.tap(find.byKey(const ValueKey('levels-settings-button')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Reset progress?'), findsOneWidget);
+    await tester
+        .tap(find.byKey(const ValueKey('settings-reset-progress-tile')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Reset all progress?'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('reset-confirm-button')));
     await tester.pumpAndSettle();
@@ -219,7 +253,7 @@ void main() {
       testApp(progressRepository: repositoryWithCompletedTutorial()),
     );
 
-    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
+    await tester.tap(find.byKey(const ValueKey('menu-levels-button')));
     await tester.pumpAndSettle();
     await tester.pump();
     await tester.tap(find.text('1'));
@@ -243,7 +277,7 @@ void main() {
       testApp(progressRepository: repository),
     );
 
-    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
+    await tester.tap(find.byKey(const ValueKey('menu-levels-button')));
     await tester.pumpAndSettle();
     await tester.pump();
     await tester.tap(find.text('1'));
@@ -267,19 +301,14 @@ void main() {
     final titleCenter = tester.getCenter(find.text('Level complete'));
     final starsCenter =
         tester.getCenter(find.byKey(const ValueKey('win-stars-row')));
-    final menuCenter =
-        tester.getCenter(find.byKey(const ValueKey('win-menu-button')));
-    final levelsCenter =
-        tester.getCenter(find.byKey(const ValueKey('win-levels-button')));
     final replayCenter =
         tester.getCenter(find.byKey(const ValueKey('win-replay-button')));
     final nextCenter =
         tester.getCenter(find.byKey(const ValueKey('win-next-button')));
     expect((starsCenter.dx - titleCenter.dx).abs(), lessThan(2));
-    expect((menuCenter.dx - titleCenter.dx).abs(), lessThan(2));
-    expect((levelsCenter.dx - titleCenter.dx).abs(), lessThan(2));
     expect((replayCenter.dx - titleCenter.dx).abs(), lessThan(2));
     expect((nextCenter.dx - titleCenter.dx).abs(), lessThan(2));
+    expect(nextCenter.dy, lessThan(replayCenter.dy));
 
     await tester.tap(find.byKey(const ValueKey('win-next-button')));
     await tester.pumpAndSettle();
@@ -297,7 +326,7 @@ void main() {
       testApp(progressRepository: repository),
     );
 
-    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
+    await tester.tap(find.byKey(const ValueKey('menu-levels-button')));
     await tester.pumpAndSettle();
     await tester.pump();
     await tester.tap(find.text('1'));
@@ -330,7 +359,7 @@ void main() {
       testApp(progressRepository: repository),
     );
 
-    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
+    await tester.tap(find.byKey(const ValueKey('menu-levels-button')));
     await tester.pumpAndSettle();
     await tester.pump();
     await tester.tap(find.text('1'));
@@ -362,7 +391,7 @@ void main() {
       testApp(progressRepository: repositoryWithCompletedTutorial()),
     );
 
-    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
+    await tester.tap(find.byKey(const ValueKey('menu-levels-button')));
     await tester.pumpAndSettle();
     await tester.pump();
     await tester.tap(find.text('1'));
@@ -407,7 +436,7 @@ void main() {
     expect(find.byKey(const ValueKey('level-info-strip')), findsOneWidget);
     expect(find.text('6x6'), findsOneWidget);
     expect(find.text('20 sparks'), findsOneWidget);
-    expect(find.text('2s watch'), findsOneWidget);
+    expect(find.text('2s remember'), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 2));
     await tester.pump();
@@ -440,14 +469,14 @@ void main() {
       testApp(progressRepository: repository),
     );
 
-    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
+    await tester.tap(find.byKey(const ValueKey('menu-levels-button')));
     await tester.pumpAndSettle();
     await tester.pump();
     await tester.tap(find.text('1'));
     await tester.pumpAndSettle();
     await tester.pump();
 
-    expect(find.text('Watch where the sparks appear. They will hide soon.'),
+    expect(find.text('Remember where the sparks appear. They will hide soon.'),
         findsOneWidget);
     expect(find.byKey(const ValueKey('tutorial-start-button')), findsOneWidget);
 

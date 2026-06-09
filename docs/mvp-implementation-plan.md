@@ -1,54 +1,61 @@
 # Memory Board Realistic MVP Implementation Plan
 
-This document is the working implementation plan for the first Android MVP. It replaces the broader idea document when we need to decide what to build now, what to postpone, and how each feature will be implemented.
+This is the working implementation plan for the first Android MVP. It defines what we build now, what stays postponed, and how UI/UX decisions should remain consistent while the game grows.
 
-## Executive Decision
+## Product Decision
 
-The MVP remains a 30-level portrait mobile game with one core mechanic:
+The MVP is a 30-level portrait mobile game with one core mechanic:
 
-Remember highlighted cells, wait until they disappear, then tap the correct hidden cells.
+Memorize glowing sparks on a board, wait until they hide, then tap the correct hidden cells.
 
-The first release should not try to include endless mode, score mode, order memory, color/type filtering, 100 levels, shop, ads, music, leaderboards, or complex asset sets. Those are good future ideas, but they would slow down the first playable build and create too many balancing and UI problems before the base game is proven.
+The visual direction is **Magic Sparks**: bright friendly night, dark teal surfaces, mint controls, yellow spark/reward accents, soft glow, readable rounded tiles, and no copied ghost/reference characters.
 
-## Critique of the Original MVP
+The first release should not include endless mode, order memory, multiple object types, shop, ads, music, leaderboards, cloud saves, or complex asset packs. Those can come later after the basic game loop and navigation feel good on a real phone.
 
-The original plan is directionally good, but too optimistic in three areas:
-
-1. Asset scope is too large for the first build.
-   A full set of original app icon, splash logo, menu background, gameplay background, empty tile, visible tile, correct tile, wrong tile, ghost object, hearts, stars, buttons, particles, and tutorial hand can be done, but not all should block the first playable MVP. Many UI assets can be implemented with Flutter widgets and icons first, then replaced with custom art.
-
-2. Animation scope needs priority.
-   Cell reveal, wrong tap feedback, heart loss, and win stars are worth doing now. Decorative particles and highly polished object fly-away animation are nice, but should be simple and bounded.
-
-3. Tutorial should be smaller.
-   A multi-step guided hand tutorial is useful, but for MVP it should be a short Level 1 overlay plus one animated pointer. It should not become a separate tutorial engine.
-
-## MVP Scope That I Will Implement
+## Current MVP Scope
 
 ### Screens
 
 - Main menu
 - Level selection
 - Gameplay
+- Settings dialog
 - Pause dialog
 - Win dialog
 - Lose dialog
 - Final completion dialog after level 30
 
-Splash and launcher icon are included, but generated through tooling after the first original icon/splash asset is created.
+### Navigation Flow
+
+- New player:
+  - Main primary CTA: `Start`
+  - Action: start Level 1 with tutorial
+- Returning player:
+  - Main primary CTA: `Continue`
+  - Action: start newest unlocked unfinished level
+- Secondary main action:
+  - `Levels`
+  - Action: open Level Selection
+- Result popup:
+  - Win: `Next` primary, `Replay` secondary, `Levels/Menu` tertiary
+  - Lose: `Replay` primary, `Levels/Menu` tertiary
+- Reset progress:
+  - Lives in Settings with a confirmation dialog
+  - Not shown as a dangerous top-level icon on the Levels screen
 
 ### Core Gameplay
 
 - 30 configured levels
 - One board per level
-- 3x3 board for levels 1-8
-- 4x4 board for levels 9-22
-- 5x5 board for levels 23-30
-- 3 to 8 objects per level
-- Memorization phase with visible objects
+- Levels 1-2: 3x3 board
+- Levels 3-5: 4x4 board
+- Levels 6-13: 5x5 board
+- Levels 14-30: 6x6 board
+- 3 to 20 sparks per level
+- Memorization phase with visible sparks
 - Recall phase with hidden board
-- Correct tap reveals object and increments progress
-- Wrong tap marks cell, removes one heart, triggers vibration
+- Correct tap reveals a spark and increments found count
+- Wrong tap marks the cell, removes one heart, triggers vibration
 - 3 wrong taps fail the level
 - Completing all targets wins the level
 - Star result:
@@ -73,34 +80,132 @@ Use Flutter's built-in `HapticFeedback`:
 
 - Correct tap: light selection/click feedback
 - Wrong tap: stronger vibration feedback
-- Level complete: success-style feedback if available, otherwise simple vibrate
+- Level complete: light impact if available
 - Level fail: vibrate
 
-Implementation note: use Flutter platform haptics first. Avoid adding a vibration plugin until we need custom vibration patterns.
+Avoid adding a vibration plugin until we need custom vibration patterns.
 
-### Portrait and Safe Areas
+## UI/UX Rules
 
-- Lock phone layout to portrait in Flutter with `SystemChrome.setPreferredOrientations`.
-- Also set Android manifest orientation when platform files are present.
-- Wrap screens in `SafeArea`.
-- Use responsive board sizing:
-  - Board width: up to 92% of screen width
-  - Board max size constrained so HUD and bottom area remain visible
-  - Cell tap target should stay close to or above 48 dp
+### Safe Areas
 
-Important nuance: current Flutter docs note that Android 16/API 36 can restrict orientation locking on devices with display width >= 600 dp. The game should still lay out correctly if a tablet ignores the lock.
+- Every screen must be safe-area ready.
+- Top controls should have a minimum 44-48 dp hit area.
+- Header content should visually sit below the system zone on Android cutouts and future iOS notch/Dynamic Island devices.
+- Bottom controls should avoid the future iOS home indicator area.
+
+### Main Menu
+
+- Settings is always a gear icon, not text.
+- Primary CTA is contextual:
+  - `Start` for a new player
+  - `Continue` for a returning player
+- Secondary action opens Levels.
+- Main progress should feel like journey progress, not only statistics:
+  - stars earned
+  - completed levels
+  - unlocked/current level
+
+### Level Selection
+
+Level tiles must have distinct states:
+
+- Completed:
+  - active filled tile
+  - star rating visible
+- Current/next:
+  - highlighted border/glow
+  - small `Next` badge
+- Unlocked but not completed:
+  - active tile, no stars
+- Locked:
+  - dimmed tile
+  - lock icon
+
+Progress cards should stay compact enough that several rows of level tiles are visible on phone screens.
+
+### Gameplay
+
+- Use `Remember/Memorize` wording, not `Watch`.
+- Found counter should be clear, for example `2/4 found`.
+- Correct and wrong states must not rely only on color:
+  - correct: spark reveal + glow
+  - wrong: red state + X + shake
+- Hearts should have readable full/lost states.
+- Tutorial pointer appears only after inactivity in recall phase.
+
+### Result Popups
+
+- Background behind result popups should be strongly dimmed enough that the popup owns focus.
+- Popups should not close on outside tap.
+- Win hierarchy:
+  - title
+  - stars/reward
+  - `Next` as primary action
+  - `Replay` as secondary action
+  - `Levels` and `Menu` as tertiary text/icon actions
+- Lose hierarchy:
+  - title
+  - message
+  - `Replay` as primary action
+  - `Levels` and `Menu` as tertiary actions
 
 ## Visual Direction
 
-The visual style remains cute spooky, but the first implementation will be controlled:
+### Theme
+
+Use **Magic Sparks**:
 
 - Dark teal/night background
-- Soft glowing board cells
-- One friendly spirit/ghost-like object
-- Material icons for hearts, stars, pause, replay, next, home
-- Custom original app icon and splash image later in the asset pass
+- Mint and turquoise UI accents
+- Yellow/gold sparks and rewards
+- Soft glow effects
+- Rounded board tiles
+- Minimal, readable detail
+- Friendly magical tone, not horror
 
-This keeps the game visually coherent without requiring a large custom art pipeline before the mechanics are stable.
+### Core Palette
+
+- Background primary: `#061F22`
+- Background secondary: `#0B2D32`
+- Card/surface: `#103A42`
+- Card border: `#1E5960`
+- Tile default: `#0E3036`
+- Tile active: `#15535B`
+- Primary button: `#88E3D0`
+- Primary button text: `#063135`
+- Accent/spark: `#FFD86B`
+- Success: `#55E6A5`
+- Error: `#FF6B78`
+- Text primary: `#F2FFFC`
+- Text secondary: `#A9C8C4`
+- Disabled: `#536A68`
+
+### Spark Object
+
+The object must not look like:
+
+- a medical cross
+- a ghost from the reference
+- a generic plus icon
+
+Recommended MVP spark:
+
+- 4-point or 6-point rounded asymmetric spark
+- glowing circular center
+- 1-2 small particles near the main form
+- main color `#FFD86B`
+- inner highlight `#FFF7C2`
+- secondary glow `#88E3D0`
+- particle color `#EFFFFA`
+
+Animation goals:
+
+- idle pulse during memorization phase
+- fade when memorization ends
+- bounce + glow when correctly selected
+
+Future object skins can include Firefly, Memory Orb, Star Seed, Moon Drop, and Rune Pebble, but MVP uses only Magic Spark.
 
 ## Asset Plan
 
@@ -108,31 +213,30 @@ This keeps the game visually coherent without requiring a large custom art pipel
 
 These do not need external assets:
 
+- Spark object: Flutter `CustomPainter`
 - Hearts: Flutter/Material icon
 - Stars: Flutter/Material icon
-- Pause/play/replay/next/home: Flutter/Material icons
+- Pause/play/replay/next/home/settings: Flutter/Material icons
 - Empty/correct/wrong tiles: Flutter widget styles
 - Glow, shake, bounce: Flutter animations
 - Basic particles: Flutter custom painter or lightweight widget particles
 
 ### Original Assets To Create
 
-Create these as original assets for the MVP:
+Create these as original assets for the MVP asset pass:
 
-- App icon: 1024x1024 PNG, readable at small size
+- App icon: 1024x1024 PNG, dark teal background with one readable Magic Spark
 - Splash logo: transparent PNG, compatible with Android 12 splash constraints
-- Spirit object: SVG or transparent PNG
-- Tutorial hand pointer: SVG or transparent PNG
-- Optional simple background texture/illustration
+- Optional simple background illustration layer
 
-Preferred approach: generate original bitmap assets, then cleanly store them under `assets/images/` with a small `assets/ATTRIBUTION.md`.
+Preferred approach: generate or draw original bitmap assets, then store them under `assets/images/` with a small `assets/ATTRIBUTION.md`.
 
 ### External Asset Fallbacks
 
 If generated assets are not good enough, use only license-safe sources:
 
 - Kenney assets as first fallback because Kenney states its game assets are CC0/public domain and attribution is not required.
-- Game-icons.net only if needed, because it is CC BY and requires attribution. That is acceptable but creates attribution work, so it is not the first choice.
+- Game-icons.net only if needed, because it is CC BY and requires attribution.
 
 No random assets from Google Images, Pinterest, App Store screenshots, or other games.
 
@@ -142,19 +246,21 @@ Use Flutter implicit animations first. They are enough for MVP and keep the code
 
 ### Required
 
-- Object appear: scale 0.85 to 1.0 plus fade
-- Object disappear: fade out
+- Spark appear: scale 0.85 to 1.0 plus fade
+- Spark disappear: fade out
 - Correct tap: glow plus small bounce
 - Wrong tap: red state plus short shake
 - Heart loss: shrink/fade
 - Win dialog: stars appear one by one
-- Level unlock: small pulse on next level tile
+- Level unlock/current level: small pulse on next level tile
+- Primary result CTA: subtle pulse
 
 ### Optional If Time Allows
 
 - Small particle burst on win
-- Object float upward before disappearing
-- Board dim overlay on fail
+- Spark float upward before disappearing
+- Stronger board dim overlay on fail
+- Animated background particles
 
 No Rive/Lottie in MVP unless static Flutter animations are not enough. Rive is powerful, but it adds a separate animation-authoring workflow that is not needed for this first game.
 
@@ -163,10 +269,10 @@ No Rive/Lottie in MVP unless static Flutter animations are not enough. Rive is p
 ### Use
 
 - `shared_preferences`: local progress, stars, tutorial flag
-- `flutter_svg`: render original SVG assets if we choose SVG for spirit/hand/icons
+- `flutter_svg`: render original SVG assets if we choose SVG for future assets
 - `flutter_launcher_icons`: generate Android/iOS launcher icons from one source image
 - `flutter_native_splash`: generate native Android/iOS/web splash screens
-- Flutter `integration_test`: app-level tests for menu, level start, win/fail path
+- Flutter widget tests: app-level checks for menu, level start, win/fail paths
 
 ### Avoid For MVP
 
@@ -179,87 +285,97 @@ No Rive/Lottie in MVP unless static Flutter animations are not enough. Rive is p
 
 ### Milestone 1: Stable Game Foundation
 
-- Split current single-file prototype into feature folders
-- Add level config model
-- Add game state model
-- Add progress repository using `shared_preferences`
-- Add route/navigation structure
-- Add portrait lock and safe-area layout
-- Add tests for level config and star logic
+Status: implemented.
 
-Exit criteria:
-
-- App opens to menu
-- Level selection shows 30 levels
-- Locked/unlocked state works
-- Progress persists after restart
-- CI passes
+- Flutter project foundation
+- Android/web/iOS platform generation path
+- Docker and GitHub Actions Android build
+- Level config model
+- Progress repository using `shared_preferences`
+- Route/navigation structure
+- Portrait lock and safe-area layout
+- Tests for level config and star logic
 
 ### Milestone 2: Real Gameplay Loop
 
-- Implement memorization timer
-- Implement recall state
-- Implement correct/wrong cell states
-- Implement hearts and fail state
-- Implement win state and star calculation
-- Add vibration feedback
-- Add replay, next, home actions
+Status: implemented.
+
+- Memorization timer
+- Recall state
+- Correct/wrong cell states
+- Hearts and fail state
+- Win state and star calculation
+- Vibration feedback
+- Replay, next, levels, menu actions
+
+### Milestone 3: Tutorial and Difficulty Pass
+
+Status: implemented and still balancing.
+
+- Level 1 tutorial overlay
+- Delayed animated pointer after recall inactivity
+- Tutorial completion persistence
+- 30-level table with current harder progression
+- Level selection star display
+
+### Milestone 4: UI/UX Foundation Pass
+
+Status: active.
+
+- Main menu Start/Continue + Levels flow
+- Settings gear consistency
+- Reset progress moved to Settings
+- Safer result popup hierarchy
+- Current/next level tile state
+- `Remember/Memorize` wording
+- Stronger safe-area and hit-area rules
 
 Exit criteria:
 
-- A player can complete and fail levels 1-30
-- Wrong taps cannot be repeated for extra heart loss
-- Correct cells cannot be double-counted
-- Next level unlocks only after win
-- CI builds APK
+- Main menu starts the correct next gameplay screen
+- Level selection remains available as secondary navigation
+- No top-level reset icon on Levels
+- Result popup primary action is unambiguous
+- Current/next level is visually obvious
 
-### Milestone 3: Tutorial and UX Polish
+### Milestone 5: Visual MVP Pass
 
-- Add Level 1 tutorial overlay
-- Add animated hand pointer for one guided tap
-- Ensure tutorial does not repeat after completion
-- Add pause dialog
-- Add final completion dialog after level 30
-- Improve level selection star display
+Status: active.
 
-Exit criteria:
-
-- First-time player understands the mechanic without external explanation
-- Tutorial flag is saved locally
-- Dialog buttons behave correctly
-
-### Milestone 4: Visual MVP Pass
-
-- Add final dark teal/cute spooky theme
-- Add original spirit object asset
-- Add original app icon and splash image
+- Replace plus-like object with readable Magic Spark
+- Keep dark teal/mint/yellow palette consistent
+- Add original app icon and splash source
 - Generate launcher icons
 - Generate native splash
 - Add simple background treatment
-- Replace placeholder object icon
 
 Exit criteria:
 
 - The app no longer feels like a Flutter demo
+- The main object reads as spark/light, not medical/ghost
 - All included assets are original or license-safe
 - `assets/ATTRIBUTION.md` documents any third-party assets
 
-### Milestone 5: Animation and Feedback Pass
+### Milestone 6: Animation and Reward Pass
 
-- Add fade/scale object appear and disappear
-- Add correct tap bounce/glow
-- Add wrong tap shake
-- Add heart loss animation
+Status: planned.
+
 - Add sequential star reveal
-- Add simple win particles if implementation stays small
+- Add small win particles
+- Add Next button pulse in win popup
+- Improve heart loss animation
+- Add subtle logo/background motion
 
 Exit criteria:
 
+- Victory feels rewarding
 - Feedback is clear on a phone screen
-- Animations do not make gameplay feel slow
+- Animations do not slow gameplay
 - No important UI shifts during animations
 
-### Milestone 6: Phone Testing and APK Delivery
+### Milestone 7: Phone Testing and APK Delivery
+
+Status: repeated after each meaningful UI/gameplay change.
 
 - Build debug APK in GitHub Actions
 - Download APK artifact locally
@@ -267,7 +383,7 @@ Exit criteria:
 - Test small and large phone layouts
 - Test rotation behavior
 - Test safe areas/cutouts as much as available
-- Run widget/integration tests
+- Run widget tests
 
 Exit criteria:
 
@@ -283,41 +399,69 @@ Exit criteria:
 - Unit tests:
   - Level progression table
   - Star calculation
-  - Heart loss
   - Target generation count and uniqueness
+  - Progress persistence/reset
 
 - Widget tests:
-  - Main menu opens level selection
+  - Main menu Start/Continue and Levels actions
+  - Settings persists vibration toggle and can reset progress
   - Level starts in memorization phase
   - Correct tap updates progress
   - Wrong tap removes heart
-  - Win dialog appears
-  - Lose dialog appears
-
-- Integration tests:
-  - First-launch tutorial path
-  - Win level 1 and unlock level 2
-  - Restart app and verify progress remains
+  - Win dialog appears and navigates correctly
+  - Lose dialog appears and navigates correctly
+  - Tutorial appears once and delayed hint timing works
 
 ### Manual
 
 - Install APK on Android phone
-- Play levels 1, 8, 9, 22, 23, 30
-- Check board fit on 3x3, 4x4, 5x5
+- Play levels 1, 2, 7, 10, 14, 23, and 30
+- Check board fit on 3x3, 4x4, 5x5, and 6x6
 - Check one-handed tap comfort
 - Check haptic feedback is not annoying
 - Check dialogs and navigation
+- Check that reset progress is hard to trigger accidentally
 
 ### Codex Click-Through Testing
 
 Use Flutter web preview for quick visual and click-through checks:
 
-- Run web server locally through Docker or CI environment
+- Build web
+- Run a local web server
 - Inspect screens with browser tooling
-- Click Play, select level, tap board cells, verify dialogs
+- Click Start/Continue, Levels, settings, gameplay, result dialogs
 - Use screenshots to catch overlap, clipped text, and layout problems
 
 Android phone testing still remains required because haptics, APK install, and true mobile sizing cannot be fully trusted from web preview.
+
+## Backlog
+
+### P0
+
+- Main CTA: Start/Continue starts gameplay
+- Secondary Levels action on main
+- Settings gear on main
+- Reset progress moved into Settings
+- Current/next level tile state
+- Result popup action hierarchy
+- Replace plus-like spark with stronger Magic Spark
+- Rename Watch to Remember/Memorize
+
+### P1
+
+- Stronger progress presentation
+- Heart loss animation and clearer lost-heart state
+- Sequential star reveal
+- Win particles
+- Stronger popup dim
+- Compact level cards
+
+### P2
+
+- Animated logo/background particles
+- App icon and splash final art pass
+- Additional object skins
+- Future level packs and unlock thresholds
 
 ## What Is Explicitly Out Of MVP
 
@@ -348,6 +492,5 @@ Android phone testing still remains required because haptics, APK install, and t
 - Flutter haptics: https://api.flutter.dev/flutter/services/HapticFeedback/vibrate.html
 - Flutter orientation locking: https://api.flutter.dev/flutter/services/SystemChrome/setPreferredOrientations.html
 - Flutter implicit animations: https://docs.flutter.dev/learn/pathway/tutorial/implicit-animations
-- Flutter integration tests: https://docs.flutter.dev/testing/integration-tests
+- Flutter widget tests: https://docs.flutter.dev/testing
 - Kenney asset license note: https://kenney.nl/support
-

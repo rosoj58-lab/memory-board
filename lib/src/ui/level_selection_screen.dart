@@ -48,20 +48,9 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
         title: const Text('Levels'),
         actions: [
           IconButton(
-            key: const ValueKey('reset-progress-button'),
-            tooltip: 'Reset progress',
-            onPressed: _showResetProgressDialog,
-            icon: const Icon(Icons.restart_alt_rounded),
-          ),
-          IconButton(
             key: const ValueKey('levels-settings-button'),
             tooltip: 'Settings',
-            onPressed: () {
-              showSettingsDialog(
-                context: context,
-                settingsRepository: widget.settingsRepository,
-              );
-            },
+            onPressed: _openSettings,
             icon: const Icon(Icons.settings_rounded),
           ),
         ],
@@ -105,9 +94,13 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                         final config = levels[index];
                         final unlocked = progress.isLevelUnlocked(config.level);
                         final stars = progress.starsForLevel(config.level);
+                        final current = unlocked &&
+                            stars == 0 &&
+                            config.level == progress.highestUnlockedLevel;
                         return _LevelTile(
                           level: config.level,
                           unlocked: unlocked,
+                          current: current,
                           highlighted: _highlightedLevel == config.level,
                           stars: stars,
                           onPressed: unlocked
@@ -159,38 +152,17 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
     });
   }
 
-  Future<void> _showResetProgressDialog() async {
-    final confirmed = await showDialog<bool>(
+  Future<void> _openSettings() async {
+    final reset = await showSettingsDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Reset progress?'),
-          content:
-              const Text('Levels, stars, and tutorial progress will reset.'),
-          actions: [
-            TextButton(
-              key: const ValueKey('reset-cancel-button'),
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              key: const ValueKey('reset-confirm-button'),
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Reset'),
-            ),
-          ],
-        );
-      },
+      settingsRepository: widget.settingsRepository,
+      progressRepository: widget.progressRepository,
     );
-
-    if (confirmed != true || !mounted) {
+    if (!reset || !mounted) {
       return;
     }
 
-    final progress = await widget.progressRepository.reset();
-    if (!mounted) {
-      return;
-    }
+    final progress = await widget.progressRepository.load();
     setState(() {
       _highlightedLevel = null;
       _progressFuture = Future.value(progress);
@@ -267,7 +239,7 @@ class _NextChallengePanel extends StatelessWidget {
                   ),
                   _SummaryMetric(
                     icon: Icons.timer_rounded,
-                    label: 'Watch',
+                    label: 'Remember',
                     value: _formatSeconds(config.showTime),
                   ),
                 ],
@@ -416,6 +388,7 @@ class _LevelTile extends StatelessWidget {
   const _LevelTile({
     required this.level,
     required this.unlocked,
+    required this.current,
     required this.highlighted,
     required this.stars,
     required this.onPressed,
@@ -423,6 +396,7 @@ class _LevelTile extends StatelessWidget {
 
   final int level;
   final bool unlocked;
+  final bool current;
   final bool highlighted;
   final int stars;
   final VoidCallback? onPressed;
@@ -431,11 +405,12 @@ class _LevelTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
       key: ValueKey('level-tile-pulse-$level-$highlighted'),
-      tween: Tween<double>(begin: 0, end: highlighted ? 1 : 0),
+      tween: Tween<double>(begin: 0, end: highlighted || current ? 1 : 0),
       duration: const Duration(milliseconds: 700),
       curve: Curves.easeOut,
       builder: (context, value, child) {
-        final pulse = highlighted ? math.sin(value * math.pi) : 0.0;
+        final pulse =
+            (highlighted || current) ? math.sin(value * math.pi) : 0.0;
         return Transform.scale(
           scale: 1 + pulse * 0.06,
           child: child,
@@ -445,7 +420,7 @@ class _LevelTile extends StatelessWidget {
         key: highlighted ? ValueKey('level-unlocked-pulse-$level') : null,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
-          boxShadow: highlighted
+          boxShadow: highlighted || current
               ? const [
                   BoxShadow(
                     color: Color(0x55FFD166),
@@ -461,14 +436,16 @@ class _LevelTile extends StatelessWidget {
           style: FilledButton.styleFrom(
             backgroundColor: highlighted
                 ? AppColors.primaryStrong
-                : unlocked
-                    ? AppColors.surfaceAlt
-                    : AppColors.surface.withAlpha(150),
+                : current
+                    ? const Color(0xFF15535B)
+                    : unlocked
+                        ? AppColors.surfaceAlt
+                        : AppColors.surface.withAlpha(150),
             foregroundColor: unlocked ? Colors.white : Colors.white54,
             padding: const EdgeInsets.all(6),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
-              side: highlighted
+              side: highlighted || current
                   ? const BorderSide(color: AppColors.gold, width: 1.5)
                   : BorderSide.none,
             ),
@@ -476,10 +453,29 @@ class _LevelTile extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                unlocked ? Icons.grid_view_rounded : Icons.lock_rounded,
-                size: 18,
-              ),
+              if (current)
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.gold,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    child: Text(
+                      'Next',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: AppColors.background,
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                  ),
+                )
+              else
+                Icon(
+                  unlocked ? Icons.grid_view_rounded : Icons.lock_rounded,
+                  size: 18,
+                ),
               const SizedBox(height: 3),
               Text('$level'),
               if (unlocked && stars > 0)

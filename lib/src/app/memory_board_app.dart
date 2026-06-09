@@ -36,6 +36,7 @@ class MemoryBoardApp extends StatelessWidget {
           backgroundColor: AppColors.background,
           foregroundColor: Colors.white,
           centerTitle: true,
+          toolbarHeight: 64,
         ),
         useMaterial3: true,
       ),

@@ -4,7 +4,9 @@ This is the short product summary. The working build plan is in [mvp-implementat
 
 ## Product
 
-Memory Board is a simple visual memory puzzle for mobile. The player sees objects on a grid, memorizes their positions, waits for them to disappear, then taps the hidden cells from memory.
+Memory Board is a portrait-first visual memory puzzle for mobile. The player memorizes glowing sparks on a board, waits until they hide, then taps the remembered cells.
+
+The design direction is **Magic Sparks**: friendly dark teal night, mint UI accents, yellow rewards, readable glowing spark objects, and clear level progress.
 
 ## Platform
 
@@ -15,47 +17,50 @@ Memory Board is a simple visual memory puzzle for mobile. The player sees object
 
 ## MVP Scope
 
-- Main menu
-- Level selection
+- Main menu with Start/Continue and Levels actions
+- Level selection with completed/current/unlocked/locked states
 - Gameplay screen
+- Settings popup with vibration and reset progress
 - Pause popup
 - Win popup
 - Lose popup
 - Final completion popup
 - 30 levels
-- 3x3, 4x4, and 5x5 boards
+- 3x3, 4x4, 5x5, and 6x6 boards
 - 3 hearts per level
 - 1-3 star rating
 - Level 1 tutorial only
 - Local progress saving
-- Simple original or license-safe static assets
+- Code-native original spark object and simple effects
 - Basic animations
 - No music or sound effects in MVP
 - Vibration/haptics only
 
-Splash screen and app icon are included in the MVP, but they should be generated after the first original logo/icon asset is created. They should not block implementation of the playable game loop.
+Splash screen and app icon are included in the MVP direction, but they should be generated after the final Magic Spark source icon is created. They should not block implementation of the playable game loop.
 
 ## Core Loop
 
-1. Player selects an unlocked level.
-2. Board appears with several visible objects.
-3. Objects stay visible for the level show time.
-4. Objects disappear.
-5. Player taps remembered cells.
-6. Correct taps reveal and mark cells.
-7. Wrong taps mark cells and remove hearts.
-8. Finding all objects wins the level.
-9. Losing all hearts fails the level.
-10. Winning unlocks the next level.
+1. New player taps Start and enters Level 1 tutorial.
+2. Returning player taps Continue and enters the newest unlocked unfinished level.
+3. Player can also open Levels and replay any unlocked level.
+4. Board appears with visible sparks.
+5. Sparks stay visible for the level memorize time.
+6. Sparks disappear.
+7. Player taps remembered cells.
+8. Correct taps reveal sparks and mark cells.
+9. Wrong taps mark cells with color and icon feedback, remove hearts, and trigger haptics.
+10. Finding all sparks wins the level.
+11. Losing all hearts fails the level.
+12. Winning unlocks the next level.
 
 ## Difficulty
 
-- Levels 1-8: 3x3 board
-- Levels 9-22: 4x4 board
-- Levels 23-30: 5x5 board
-- Object count grows from 3 to 8
-- Show time gradually decreases from about 4.0s to 2.5s
-- Do not exceed 8 objects in MVP
+- Levels 1-2: 3x3 board
+- Levels 3-5: 4x4 board
+- Levels 6-13: 5x5 board
+- Levels 14-30: 6x6 board
+- Spark count grows from 3 to 20
+- Memorize time gradually decreases from 4.0s to 2.0s
 
 ## Stars
 
@@ -64,6 +69,16 @@ Splash screen and app icon are included in the MVP, but they should be generated
 - 1 star: 2 mistakes
 - Fail: 3 mistakes
 
+## Current UX Priorities
+
+1. Make navigation intentional: Start/Continue starts gameplay, Levels opens the level map.
+2. Keep reset progress in Settings, not as a risky top-level Levels icon.
+3. Make current/next level visually distinct from completed and locked levels.
+4. Make result popups reward-forward: Next is primary, Replay is secondary, Menu/Levels are tertiary.
+5. Use "Remember/Memorize" wording instead of "Watch".
+6. Make the spark object readable as magic/light, not a medical cross.
+7. Add small reward animations without slowing gameplay.
+
 ## Future Ideas
 
-Future versions can add endless trainer mode, 100 levels, order/sequence memory, object type filtering, color filtering, hints, sound effects, achievements, and daily challenges.
+Future versions can add endless trainer mode, 100 levels, order/sequence memory, object skins, color filtering, hints, sound effects, achievements, daily challenges, and monetization only after the core game feels good.

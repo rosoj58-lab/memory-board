@@ -289,6 +289,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
+      barrierColor: Colors.black.withAlpha(170),
       builder: (context) {
         return AlertDialog(
           contentPadding: const EdgeInsets.fromLTRB(24, 26, 24, 22),
@@ -337,6 +338,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
+      barrierColor: Colors.black.withAlpha(170),
       builder: (context) {
         return AlertDialog(
           contentPadding: const EdgeInsets.fromLTRB(24, 26, 24, 22),
@@ -406,7 +408,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '${_correct.length}/${config.objectCount}',
+                          '${_correct.length}/${config.objectCount} found',
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         Row(
@@ -456,7 +458,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
               if (_tutorialIntroVisible)
                 _TutorialOverlay(
                   title: 'Remember the glowing tiles',
-                  body: 'Watch where the sparks appear. They will hide soon.',
+                  body:
+                      'Remember where the sparks appear. They will hide soon.',
                   buttonLabel: 'Start',
                   onPressed: _startTutorialMemorizeStep,
                 )
@@ -505,7 +508,7 @@ class _LevelInfoStrip extends StatelessWidget {
             ),
             _LevelInfoChip(
               icon: Icons.timer_rounded,
-              label: '${_formatSeconds(config.showTime)} watch',
+              label: '${_formatSeconds(config.showTime)} remember',
             ),
           ],
         ),
@@ -1064,33 +1067,53 @@ class _WinDialogContentState extends State<_WinDialogContent>
               ),
             ],
             const SizedBox(height: 22),
-            _DialogActionButton(
-              key: const ValueKey('win-menu-button'),
-              onPressed: widget.onMenu,
-              child: const Text('Menu'),
-            ),
-            const SizedBox(height: 8),
-            _DialogActionButton(
-              key: const ValueKey('win-levels-button'),
-              onPressed: widget.onLevels,
-              child: const Text('Levels'),
-            ),
-            const SizedBox(height: 8),
-            _DialogActionButton(
-              key: const ValueKey('win-replay-button'),
-              onPressed: widget.onReplay,
-              icon: Icons.replay_rounded,
-              child: const Text('Replay'),
-            ),
             if (widget.onNext != null) ...[
-              const SizedBox(height: 8),
               _DialogActionButton(
                 key: const ValueKey('win-next-button'),
                 onPressed: widget.onNext!,
                 icon: Icons.arrow_forward_rounded,
+                style: _DialogActionStyle.primary,
                 child: const Text('Next'),
               ),
+              const SizedBox(height: 8),
+            ] else ...[
+              _DialogActionButton(
+                key: const ValueKey('win-levels-button'),
+                onPressed: widget.onLevels,
+                icon: Icons.grid_view_rounded,
+                style: _DialogActionStyle.primary,
+                child: const Text('Levels'),
+              ),
+              const SizedBox(height: 8),
             ],
+            _DialogActionButton(
+              key: const ValueKey('win-replay-button'),
+              onPressed: widget.onReplay,
+              icon: Icons.replay_rounded,
+              style: _DialogActionStyle.secondary,
+              child: const Text('Replay'),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 12,
+              runSpacing: 4,
+              children: [
+                if (widget.onNext != null)
+                  _DialogActionButton(
+                    key: const ValueKey('win-levels-button'),
+                    onPressed: widget.onLevels,
+                    style: _DialogActionStyle.text,
+                    child: const Text('Levels'),
+                  ),
+                _DialogActionButton(
+                  key: const ValueKey('win-menu-button'),
+                  onPressed: widget.onMenu,
+                  style: _DialogActionStyle.text,
+                  child: const Text('Menu'),
+                ),
+              ],
+            ),
           ],
         );
       },
@@ -1129,33 +1152,45 @@ class _LoseDialogContent extends StatelessWidget {
         ),
         const SizedBox(height: 22),
         _DialogActionButton(
-          key: const ValueKey('lose-menu-button'),
-          onPressed: onMenu,
-          child: const Text('Menu'),
-        ),
-        const SizedBox(height: 8),
-        _DialogActionButton(
-          key: const ValueKey('lose-levels-button'),
-          onPressed: onLevels,
-          child: const Text('Levels'),
-        ),
-        const SizedBox(height: 8),
-        _DialogActionButton(
           key: const ValueKey('lose-replay-button'),
           onPressed: onReplay,
           icon: Icons.replay_rounded,
+          style: _DialogActionStyle.primary,
           child: const Text('Replay'),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 12,
+          runSpacing: 4,
+          children: [
+            _DialogActionButton(
+              key: const ValueKey('lose-levels-button'),
+              onPressed: onLevels,
+              style: _DialogActionStyle.text,
+              child: const Text('Levels'),
+            ),
+            _DialogActionButton(
+              key: const ValueKey('lose-menu-button'),
+              onPressed: onMenu,
+              style: _DialogActionStyle.text,
+              child: const Text('Menu'),
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
+enum _DialogActionStyle { primary, secondary, text }
+
 class _DialogActionButton extends StatelessWidget {
   const _DialogActionButton({
     required this.onPressed,
     required this.child,
     this.icon,
+    this.style = _DialogActionStyle.text,
     super.key,
   });
 
@@ -1164,6 +1199,7 @@ class _DialogActionButton extends StatelessWidget {
   final VoidCallback onPressed;
   final Widget child;
   final IconData? icon;
+  final _DialogActionStyle style;
 
   @override
   Widget build(BuildContext context) {
@@ -1180,16 +1216,21 @@ class _DialogActionButton extends StatelessWidget {
           );
 
     return SizedBox(
-      width: width,
-      child: icon == null
-          ? TextButton(
-              onPressed: onPressed,
-              child: buttonChild,
-            )
-          : FilledButton(
-              onPressed: onPressed,
-              child: buttonChild,
-            ),
+      width: style == _DialogActionStyle.text ? null : width,
+      child: switch (style) {
+        _DialogActionStyle.primary => FilledButton(
+            onPressed: onPressed,
+            child: buttonChild,
+          ),
+        _DialogActionStyle.secondary => OutlinedButton(
+            onPressed: onPressed,
+            child: buttonChild,
+          ),
+        _DialogActionStyle.text => TextButton(
+            onPressed: onPressed,
+            child: buttonChild,
+          ),
+      },
     );
   }
 }
