@@ -34,8 +34,8 @@ class AppBackground extends StatelessWidget {
   }
 }
 
-class SpiritMark extends StatelessWidget {
-  const SpiritMark({
+class SparkMark extends StatelessWidget {
+  const SparkMark({
     this.size = 36,
     this.glowing = false,
     super.key,
@@ -61,7 +61,7 @@ class SpiritMark extends StatelessWidget {
       ),
       child: CustomPaint(
         size: Size.square(size),
-        painter: const _SpiritPainter(),
+        painter: const _SparkPainter(),
       ),
     );
   }
@@ -92,46 +92,75 @@ class _NightSpecklePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class _SpiritPainter extends CustomPainter {
-  const _SpiritPainter();
+class _SparkPainter extends CustomPainter {
+  const _SparkPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
-    final bodyPaint = Paint()..color = const Color(0xFFE9FFFA);
-    final accentPaint = Paint()..color = AppColors.primaryStrong;
-    final eyePaint = Paint()..color = const Color(0xFF09272E);
-
     final w = size.width;
     final h = size.height;
-    final body = Path()
-      ..moveTo(w * 0.50, h * 0.08)
-      ..cubicTo(w * 0.24, h * 0.08, w * 0.14, h * 0.30, w * 0.14, h * 0.48)
-      ..lineTo(w * 0.14, h * 0.78)
-      ..quadraticBezierTo(w * 0.23, h * 0.70, w * 0.32, h * 0.80)
-      ..quadraticBezierTo(w * 0.42, h * 0.90, w * 0.50, h * 0.78)
-      ..quadraticBezierTo(w * 0.58, h * 0.90, w * 0.68, h * 0.80)
-      ..quadraticBezierTo(w * 0.77, h * 0.70, w * 0.86, h * 0.78)
-      ..lineTo(w * 0.86, h * 0.48)
-      ..cubicTo(w * 0.86, h * 0.30, w * 0.76, h * 0.08, w * 0.50, h * 0.08)
-      ..close();
+    final center = Offset(w * 0.50, h * 0.52);
+    final glowPaint = Paint()
+      ..color = const Color(0x6645E0C4)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.18);
+    final petalPaint = Paint()..color = const Color(0xFFE9FFFA);
+    final corePaint = Paint()..color = const Color(0xFFBFFEF2);
+    final accentPaint = Paint()..color = AppColors.primaryStrong;
+    final shadowPaint = Paint()..color = const Color(0x332DD4BF);
 
-    canvas.drawPath(body, bodyPaint);
-    canvas.drawCircle(Offset(w * 0.36, h * 0.42), w * 0.055, eyePaint);
-    canvas.drawCircle(Offset(w * 0.64, h * 0.42), w * 0.055, eyePaint);
+    canvas.drawCircle(center, w * 0.34, glowPaint);
 
-    final smile = Path()
-      ..moveTo(w * 0.40, h * 0.56)
-      ..quadraticBezierTo(w * 0.50, h * 0.63, w * 0.60, h * 0.56);
-    canvas.drawPath(
-      smile,
-      Paint()
-        ..color = const Color(0xFF09272E)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = w * 0.035
-        ..strokeCap = StrokeCap.round,
+    final petals = <RRect>[
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(
+          center: Offset(w * 0.50, h * 0.27),
+          width: w * 0.24,
+          height: h * 0.40,
+        ),
+        Radius.circular(w * 0.12),
+      ),
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(
+          center: Offset(w * 0.50, h * 0.77),
+          width: w * 0.24,
+          height: h * 0.40,
+        ),
+        Radius.circular(w * 0.12),
+      ),
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(
+          center: Offset(w * 0.27, h * 0.52),
+          width: w * 0.40,
+          height: h * 0.24,
+        ),
+        Radius.circular(w * 0.12),
+      ),
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(
+          center: Offset(w * 0.73, h * 0.52),
+          width: w * 0.40,
+          height: h * 0.24,
+        ),
+        Radius.circular(w * 0.12),
+      ),
+    ];
+
+    for (final petal in petals) {
+      canvas.drawRRect(petal.shift(Offset(0, h * 0.025)), shadowPaint);
+      canvas.drawRRect(petal, petalPaint);
+    }
+
+    canvas.drawCircle(center, w * 0.13, corePaint);
+    canvas.drawCircle(
+      Offset(w * 0.68, h * 0.28),
+      w * 0.08,
+      accentPaint,
     );
-
-    canvas.drawCircle(Offset(w * 0.74, h * 0.24), w * 0.055, accentPaint);
+    canvas.drawCircle(
+      Offset(w * 0.34, h * 0.72),
+      w * 0.04,
+      Paint()..color = const Color(0xFF8BF6E7),
+    );
   }
 
   @override

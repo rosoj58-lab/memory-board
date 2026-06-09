@@ -25,12 +25,19 @@ class LevelSelectionScreen extends StatefulWidget {
 
 class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
   late Future<PlayerProgress> _progressFuture;
+  final ScrollController _scrollController = ScrollController();
   int? _highlightedLevel;
 
   @override
   void initState() {
     super.initState();
     _progressFuture = widget.progressRepository.load();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -70,6 +77,7 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
               }
 
               return CustomScrollView(
+                controller: _scrollController,
                 slivers: [
                   SliverToBoxAdapter(
                     child: _ProgressSummary(progress: progress),
@@ -187,6 +195,9 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
       _highlightedLevel = null;
       _progressFuture = Future.value(progress);
     });
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
   }
 }
 
@@ -201,7 +212,7 @@ class _NextChallengePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final objectLabel = config.objectCount == 1 ? 'spirit' : 'spirits';
+    final objectLabel = config.objectCount == 1 ? 'spark' : 'sparks';
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
       child: DecoratedBox(

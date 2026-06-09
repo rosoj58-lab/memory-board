@@ -36,6 +36,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
   final Set<int> _wrong = <int>{};
   GamePhase _phase = GamePhase.memorize;
   Timer? _timer;
+  Timer? _tutorialRecallPromptTimer;
   DateTime? _memorizeStartedAt;
   Duration _remainingMemorizeTime = Duration.zero;
   Duration _activeMemorizeDuration = Duration.zero;
@@ -56,10 +57,12 @@ class _GameplayScreenState extends State<GameplayScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _tutorialRecallPromptTimer?.cancel();
     super.dispose();
   }
 
   void _startLevel() {
+    _tutorialRecallPromptTimer?.cancel();
     setState(() {
       _targets = generateTargets(
         level: widget.config.level,
@@ -127,10 +130,31 @@ class _GameplayScreenState extends State<GameplayScreen> {
       if (mounted) {
         setState(() {
           _phase = GamePhase.recall;
-          _tutorialRecallPromptVisible = _tutorialEnabled;
+          _tutorialRecallPromptVisible = false;
         });
+        _scheduleTutorialRecallPrompt();
       }
     });
+  }
+
+  void _scheduleTutorialRecallPrompt() {
+    _tutorialRecallPromptTimer?.cancel();
+    if (!_tutorialEnabled || _phase != GamePhase.recall) {
+      return;
+    }
+    _tutorialRecallPromptTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted || !_tutorialEnabled || _phase != GamePhase.recall) {
+        return;
+      }
+      setState(() => _tutorialRecallPromptVisible = true);
+    });
+  }
+
+  void _hideTutorialRecallPrompt() {
+    _tutorialRecallPromptTimer?.cancel();
+    if (_tutorialRecallPromptVisible) {
+      setState(() => _tutorialRecallPromptVisible = false);
+    }
   }
 
   void _startTutorialMemorizeStep() {
@@ -158,6 +182,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
   Future<void> _showPauseDialog() async {
     _pauseMemorizeTimer();
+    _hideTutorialRecallPrompt();
     final action = await showDialog<_PauseAction>(
       context: context,
       barrierDismissible: false,
@@ -198,6 +223,9 @@ class _GameplayScreenState extends State<GameplayScreen> {
       return;
     }
     _resumeMemorizeTimer();
+    if (_phase == GamePhase.recall) {
+      _scheduleTutorialRecallPrompt();
+    }
   }
 
   Future<void> _handleCellTap(int index) async {
@@ -207,11 +235,12 @@ class _GameplayScreenState extends State<GameplayScreen> {
       return;
     }
 
+    _hideTutorialRecallPrompt();
+
     if (_targets.contains(index)) {
       _selectionClick();
       setState(() {
         _correct.add(index);
-        _tutorialRecallPromptVisible = false;
         if (_correct.length == _targets.length) {
           _phase = GamePhase.won;
         }
@@ -227,6 +256,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
           stars: starsForMistakes(_mistakes),
         );
         await _showWinDialog();
+      } else {
+        _scheduleTutorialRecallPrompt();
       }
       return;
     }
@@ -242,6 +273,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
     if (_phase == GamePhase.lost) {
       await _showLoseDialog();
+    } else {
+      _scheduleTutorialRecallPrompt();
     }
   }
 
@@ -263,6 +296,10 @@ class _GameplayScreenState extends State<GameplayScreen> {
             title: isFinalLevel ? 'All levels complete' : 'Level complete',
             stars: stars,
             isFinalLevel: isFinalLevel,
+            onMenu: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
             onLevels: () {
               Navigator.of(context).pop();
               Navigator.of(context).pop();
@@ -304,6 +341,10 @@ class _GameplayScreenState extends State<GameplayScreen> {
         return AlertDialog(
           contentPadding: const EdgeInsets.fromLTRB(24, 26, 24, 22),
           content: _LoseDialogContent(
+            onMenu: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
             onLevels: () {
               Navigator.of(context).pop();
               Navigator.of(context).pop();
@@ -318,12 +359,19 @@ class _GameplayScreenState extends State<GameplayScreen> {
     );
   }
 
+  int get _tutorialPointerCell {
+    return _targets.firstWhere(
+      (target) => !_correct.contains(target),
+      orElse: () => _targets.first,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final config = widget.config;
     final instruction = switch (_phase) {
       GamePhase.memorize => 'Remember the glowing tiles',
-      GamePhase.recall => 'Find the hidden spirits',
+      GamePhase.recall => 'Find the hidden sparks',
       GamePhase.won => 'Completed',
       GamePhase.lost => 'Failed',
     };
@@ -388,7 +436,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
                           aspectRatio: 1,
                           child: _TutorialBoardStack(
                             showPointer: _tutorialRecallPromptVisible,
-                            pointerCell: _targets.first,
+                            pointerCell: _tutorialPointerCell,
                             gridSize: config.gridSize,
                             child: _Board(
                               gridSize: config.gridSize,
@@ -408,13 +456,13 @@ class _GameplayScreenState extends State<GameplayScreen> {
               if (_tutorialIntroVisible)
                 _TutorialOverlay(
                   title: 'Remember the glowing tiles',
-                  body: 'Watch where the spirits appear. They will hide soon.',
+                  body: 'Watch where the sparks appear. They will hide soon.',
                   buttonLabel: 'Start',
                   onPressed: _startTutorialMemorizeStep,
                 )
               else if (_tutorialRecallPromptVisible)
                 const _TutorialPrompt(
-                  text: 'Tap the tiles where the spirits were.',
+                  text: 'Tap the tiles where the sparks were.',
                 ),
             ],
           ),
@@ -431,7 +479,7 @@ class _LevelInfoStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final objectLabel = config.objectCount == 1 ? 'spirit' : 'spirits';
+    final objectLabel = config.objectCount == 1 ? 'spark' : 'sparks';
     return DecoratedBox(
       decoration: BoxDecoration(
         color: const Color(0xBB102B34),
@@ -584,9 +632,9 @@ class _TutorialHandPointerState extends State<_TutorialHandPointer>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 950),
     )..repeat(reverse: true);
-    _scale = Tween<double>(begin: 0.9, end: 1.12).animate(
+    _scale = Tween<double>(begin: 0.96, end: 1.08).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
   }
@@ -757,15 +805,15 @@ class _Board extends StatelessWidget {
         final isVisible = phase == GamePhase.memorize || isCorrect;
 
         Color color = const Color(0xFF173A45);
-        bool showSpirit = false;
+        bool showSpark = false;
         IconData? statusIcon;
         if (isVisible && isTarget) {
           color = AppColors.surfaceAlt;
-          showSpirit = true;
+          showSpark = true;
         }
         if (isCorrect) {
           color = const Color(0xFF127865);
-          showSpirit = true;
+          showSpark = true;
         }
         if (isWrong) {
           color = const Color(0xFF812D3E);
@@ -776,7 +824,7 @@ class _Board extends StatelessWidget {
           index: index,
           color: color,
           glowing: isVisible && isTarget,
-          showSpirit: showSpirit,
+          showSpark: showSpark,
           statusIcon: statusIcon,
           isCorrect: isCorrect,
           isWrong: isWrong,
@@ -792,7 +840,7 @@ class _BoardCell extends StatefulWidget {
     required this.index,
     required this.color,
     required this.glowing,
-    required this.showSpirit,
+    required this.showSpark,
     required this.isCorrect,
     required this.isWrong,
     required this.onTap,
@@ -802,7 +850,7 @@ class _BoardCell extends StatefulWidget {
   final int index;
   final Color color;
   final bool glowing;
-  final bool showSpirit;
+  final bool showSpark;
   final bool isCorrect;
   final bool isWrong;
   final IconData? statusIcon;
@@ -889,9 +937,9 @@ class _BoardCellState extends State<_BoardCell>
                 child: ScaleTransition(scale: eased, child: child),
               );
             },
-            child: widget.showSpirit
-                ? SpiritMark(
-                    key: const ValueKey('cell-spirit'),
+            child: widget.showSpark
+                ? SparkMark(
+                    key: const ValueKey('cell-spark'),
                     size: 34,
                     glowing: widget.isCorrect,
                   )
@@ -917,6 +965,7 @@ class _WinDialogContent extends StatefulWidget {
     required this.title,
     required this.stars,
     required this.isFinalLevel,
+    required this.onMenu,
     required this.onLevels,
     required this.onReplay,
     required this.onNext,
@@ -925,6 +974,7 @@ class _WinDialogContent extends StatefulWidget {
   final String title;
   final int stars;
   final bool isFinalLevel;
+  final VoidCallback onMenu;
   final VoidCallback onLevels;
   final VoidCallback onReplay;
   final VoidCallback? onNext;
@@ -1015,6 +1065,12 @@ class _WinDialogContentState extends State<_WinDialogContent>
             ],
             const SizedBox(height: 22),
             _DialogActionButton(
+              key: const ValueKey('win-menu-button'),
+              onPressed: widget.onMenu,
+              child: const Text('Menu'),
+            ),
+            const SizedBox(height: 8),
+            _DialogActionButton(
               key: const ValueKey('win-levels-button'),
               onPressed: widget.onLevels,
               child: const Text('Levels'),
@@ -1044,10 +1100,12 @@ class _WinDialogContentState extends State<_WinDialogContent>
 
 class _LoseDialogContent extends StatelessWidget {
   const _LoseDialogContent({
+    required this.onMenu,
     required this.onLevels,
     required this.onReplay,
   });
 
+  final VoidCallback onMenu;
   final VoidCallback onLevels;
   final VoidCallback onReplay;
 
@@ -1070,6 +1128,12 @@ class _LoseDialogContent extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 22),
+        _DialogActionButton(
+          key: const ValueKey('lose-menu-button'),
+          onPressed: onMenu,
+          child: const Text('Menu'),
+        ),
+        const SizedBox(height: 8),
         _DialogActionButton(
           key: const ValueKey('lose-levels-button'),
           onPressed: onLevels,

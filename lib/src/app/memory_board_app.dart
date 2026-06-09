@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/progress_repository.dart';
 import '../data/settings_repository.dart';
+import 'route_observer.dart';
 import '../ui/app_chrome.dart';
 import '../ui/main_menu_screen.dart';
 
@@ -20,6 +21,7 @@ class MemoryBoardApp extends StatelessWidget {
     return MaterialApp(
       title: 'Memory Board',
       debugShowCheckedModeBanner: false,
+      navigatorObservers: [memoryBoardRouteObserver],
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.primary,
