@@ -136,6 +136,40 @@ void main() {
     expect(progress.starsForLevel(1), 3);
   });
 
+  testWidgets('returning to levels highlights the newly unlocked level',
+      (tester) async {
+    final repository = repositoryWithCompletedTutorial();
+    await tester.pumpWidget(
+      MemoryBoardApp(progressRepository: repository),
+    );
+
+    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.tap(find.text('1'));
+    await tester.pumpAndSettle();
+
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump();
+
+    final targets = generateTargets(level: 1, gridSize: 3, objectCount: 3);
+    for (final target in targets) {
+      await tester.tap(find.byKey(ValueKey('board-cell-$target')));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('win-levels-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Levels'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('level-unlocked-pulse-2')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('three wrong taps show the lose dialog', (tester) async {
     await tester.pumpWidget(
       MemoryBoardApp(progressRepository: repositoryWithCompletedTutorial()),

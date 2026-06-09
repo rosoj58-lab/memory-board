@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../data/progress_repository.dart';
@@ -19,6 +21,7 @@ class LevelSelectionScreen extends StatefulWidget {
 
 class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
   late Future<PlayerProgress> _progressFuture;
+  int? _highlightedLevel;
 
   @override
   void initState() {
@@ -56,9 +59,13 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                   return _LevelTile(
                     level: config.level,
                     unlocked: unlocked,
+                    highlighted: _highlightedLevel == config.level,
                     stars: stars,
                     onPressed: unlocked
                         ? () async {
+                            final previousHighest =
+                                progress.highestUnlockedLevel;
+                            setState(() => _highlightedLevel = null);
                             await Navigator.of(context).push(
                               MaterialPageRoute<void>(
                                 builder: (_) => GameplayScreen(
@@ -67,12 +74,22 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                                 ),
                               ),
                             );
-                            if (mounted) {
-                              setState(() {
-                                _progressFuture =
-                                    widget.progressRepository.load();
-                              });
+                            if (!mounted) {
+                              return;
                             }
+                            final nextProgress =
+                                await widget.progressRepository.load();
+                            if (!mounted) {
+                              return;
+                            }
+                            setState(() {
+                              _highlightedLevel =
+                                  nextProgress.highestUnlockedLevel >
+                                          previousHighest
+                                      ? nextProgress.highestUnlockedLevel
+                                      : null;
+                              _progressFuture = Future.value(nextProgress);
+                            });
                           }
                         : null,
                   );
@@ -90,50 +107,88 @@ class _LevelTile extends StatelessWidget {
   const _LevelTile({
     required this.level,
     required this.unlocked,
+    required this.highlighted,
     required this.stars,
     required this.onPressed,
   });
 
   final int level;
   final bool unlocked;
+  final bool highlighted;
   final int stars;
   final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return FilledButton.tonal(
-      key: ValueKey('level-tile-$level'),
-      onPressed: onPressed,
-      style: FilledButton.styleFrom(
-        backgroundColor:
-            unlocked ? AppColors.surfaceAlt : AppColors.surface.withAlpha(150),
-        foregroundColor: unlocked ? Colors.white : Colors.white54,
-        padding: const EdgeInsets.all(6),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            unlocked ? Icons.grid_view_rounded : Icons.lock_rounded,
-            size: 18,
-          ),
-          const SizedBox(height: 3),
-          Text('$level'),
-          if (unlocked && stars > 0)
-            FittedBox(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: List.generate(3, (index) {
-                  return Icon(
-                    index < stars ? Icons.star : Icons.star_border,
-                    size: 12,
-                    color: AppColors.gold,
-                  );
-                }),
-              ),
+    return TweenAnimationBuilder<double>(
+      key: ValueKey('level-tile-pulse-$level-$highlighted'),
+      tween: Tween<double>(begin: 0, end: highlighted ? 1 : 0),
+      duration: const Duration(milliseconds: 700),
+      curve: Curves.easeOut,
+      builder: (context, value, child) {
+        final pulse = highlighted ? math.sin(value * math.pi) : 0.0;
+        return Transform.scale(
+          scale: 1 + pulse * 0.06,
+          child: child,
+        );
+      },
+      child: DecoratedBox(
+        key: highlighted ? ValueKey('level-unlocked-pulse-$level') : null,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: highlighted
+              ? const [
+                  BoxShadow(
+                    color: Color(0x55FFD166),
+                    blurRadius: 14,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
+        ),
+        child: FilledButton.tonal(
+          key: ValueKey('level-tile-$level'),
+          onPressed: onPressed,
+          style: FilledButton.styleFrom(
+            backgroundColor: highlighted
+                ? AppColors.primaryStrong
+                : unlocked
+                    ? AppColors.surfaceAlt
+                    : AppColors.surface.withAlpha(150),
+            foregroundColor: unlocked ? Colors.white : Colors.white54,
+            padding: const EdgeInsets.all(6),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+              side: highlighted
+                  ? const BorderSide(color: AppColors.gold, width: 1.5)
+                  : BorderSide.none,
             ),
-        ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                unlocked ? Icons.grid_view_rounded : Icons.lock_rounded,
+                size: 18,
+              ),
+              const SizedBox(height: 3),
+              Text('$level'),
+              if (unlocked && stars > 0)
+                FittedBox(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(3, (index) {
+                      return Icon(
+                        index < stars ? Icons.star : Icons.star_border,
+                        size: 12,
+                        color: AppColors.gold,
+                      );
+                    }),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
