@@ -8,6 +8,35 @@ Memory Board is a portrait-first mobile memory puzzle game. Android is the first
 - Docker for reproducible Android build tooling and CI-like checks
 - GitHub Actions for Android build verification
 
+## Local Flutter Commands
+
+Flutter is expected in `PATH`. On this Mac it can be used from:
+
+```sh
+export PATH="/Users/irinawork/development/flutter/bin:$PATH"
+```
+
+Run local checks:
+
+```sh
+flutter pub get
+flutter analyze
+flutter test
+flutter build web
+```
+
+Run a browser preview for Codex click-through testing:
+
+```sh
+flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8080
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8080
+```
+
 ## Local Docker Commands
 
 Build the Flutter tooling container:

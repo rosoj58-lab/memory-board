@@ -40,3 +40,6 @@ ios/Runner.xcodeproj/project.xcworkspace/xcuserdata/
 .idea/
 .vscode/
 *.iml
+
+# Browser test artifacts
+.playwright-mcp/
