@@ -48,7 +48,7 @@ void main() {
     expect(find.text('Memory Board'), findsOneWidget);
     expect(find.text('Play'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
     await tester.pumpAndSettle();
     await tester.pump();
 
@@ -71,7 +71,7 @@ void main() {
       testApp(progressRepository: repositoryWithUnlockedLevels(4)),
     );
 
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
     await tester.pumpAndSettle();
     await tester.pump();
 
@@ -95,7 +95,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('menu-settings-button')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Settings'), findsOneWidget);
+    expect(find.byKey(const ValueKey('settings-done-button')), findsOneWidget);
     expect(find.text('Vibration'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('haptics-toggle')));
@@ -129,7 +129,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
     await tester.pumpAndSettle();
     await tester.pump();
 
@@ -143,7 +143,7 @@ void main() {
       testApp(progressRepository: repositoryWithCompletedTutorial()),
     );
 
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
     await tester.pumpAndSettle();
     await tester.pump();
     await tester.tap(find.text('1'));
@@ -163,7 +163,7 @@ void main() {
       testApp(),
     );
 
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
     await tester.pumpAndSettle();
     await tester.pump();
 
@@ -188,7 +188,7 @@ void main() {
       testApp(progressRepository: repository),
     );
 
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
     await tester.pumpAndSettle();
     await tester.pump();
 
@@ -217,7 +217,7 @@ void main() {
       testApp(progressRepository: repositoryWithCompletedTutorial()),
     );
 
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
     await tester.pumpAndSettle();
     await tester.pump();
     await tester.tap(find.text('1'));
@@ -241,7 +241,7 @@ void main() {
       testApp(progressRepository: repository),
     );
 
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
     await tester.pumpAndSettle();
     await tester.pump();
     await tester.tap(find.text('1'));
@@ -291,7 +291,7 @@ void main() {
       testApp(progressRepository: repository),
     );
 
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
     await tester.pumpAndSettle();
     await tester.pump();
     await tester.tap(find.text('1'));
@@ -323,7 +323,7 @@ void main() {
       testApp(progressRepository: repositoryWithCompletedTutorial()),
     );
 
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
     await tester.pumpAndSettle();
     await tester.pump();
     await tester.tap(find.text('1'));
@@ -401,7 +401,7 @@ void main() {
       testApp(progressRepository: repository),
     );
 
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.tap(find.byKey(const ValueKey('menu-play-button')));
     await tester.pumpAndSettle();
     await tester.pump();
     await tester.tap(find.text('1'));
