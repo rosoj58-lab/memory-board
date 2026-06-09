@@ -122,55 +122,76 @@ class _SparkPainter extends CustomPainter {
     final center = Offset(w * 0.50, h * 0.50);
     final glowPaint = Paint()
       ..color = const Color(0x6688E3D0)
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.20);
-    final sparkPaint = Paint()..color = AppColors.gold;
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.24);
+    final outerGlowPaint = Paint()
+      ..color = const Color(0x44FFD86B)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.12);
+    final sparkPaint = Paint()
+      ..shader = const RadialGradient(
+        colors: [
+          Color(0xFFFFF7C2),
+          Color(0xFFFFE873),
+          Color(0xFFFFD86B),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, w, h));
     final highlightPaint = Paint()..color = const Color(0xFFFFF7C2);
     final innerHighlightPaint = Paint()..color = const Color(0x59FFF7C2);
-    final particlePaint = Paint()..color = const Color(0xFFEFFFFA);
+    final particlePaint = Paint()..color = const Color(0xFFFFF1A6);
     final mintParticlePaint = Paint()..color = AppColors.primary;
 
-    canvas.drawCircle(center, w * 0.36, glowPaint);
+    canvas.drawCircle(center, w * 0.42, glowPaint);
+    canvas.drawCircle(center, w * 0.34, outerGlowPaint);
 
     final spark = Path()
-      ..moveTo(w * 0.50, h * 0.06)
-      ..cubicTo(w * 0.55, h * 0.28, w * 0.59, h * 0.36, w * 0.74, h * 0.39)
-      ..cubicTo(w * 0.92, h * 0.43, w * 0.92, h * 0.57, w * 0.73, h * 0.61)
-      ..cubicTo(w * 0.59, h * 0.64, w * 0.55, h * 0.72, w * 0.50, h * 0.94)
-      ..cubicTo(w * 0.45, h * 0.72, w * 0.41, h * 0.64, w * 0.27, h * 0.61)
-      ..cubicTo(w * 0.08, h * 0.57, w * 0.08, h * 0.43, w * 0.26, h * 0.39)
-      ..cubicTo(w * 0.41, h * 0.36, w * 0.45, h * 0.28, w * 0.50, h * 0.06)
+      ..moveTo(w * 0.50, h * 0.04)
+      ..cubicTo(w * 0.57, h * 0.27, w * 0.61, h * 0.38, w * 0.76, h * 0.42)
+      ..cubicTo(w * 0.96, h * 0.47, w * 0.96, h * 0.55, w * 0.76, h * 0.60)
+      ..cubicTo(w * 0.61, h * 0.64, w * 0.57, h * 0.75, w * 0.50, h * 0.96)
+      ..cubicTo(w * 0.43, h * 0.75, w * 0.39, h * 0.64, w * 0.24, h * 0.60)
+      ..cubicTo(w * 0.04, h * 0.55, w * 0.04, h * 0.47, w * 0.24, h * 0.42)
+      ..cubicTo(w * 0.39, h * 0.38, w * 0.43, h * 0.27, w * 0.50, h * 0.04)
       ..close();
 
     canvas.drawPath(
-      spark.shift(Offset(0, h * 0.03)),
-      Paint()..color = const Color(0x33201908),
+      spark.shift(Offset(0, h * 0.025)),
+      Paint()..color = const Color(0x25201908),
     );
     canvas.drawPath(spark, sparkPaint);
 
     final innerSpark = Path()
-      ..moveTo(w * 0.50, h * 0.24)
-      ..cubicTo(w * 0.54, h * 0.40, w * 0.58, h * 0.44, w * 0.70, h * 0.50)
-      ..cubicTo(w * 0.58, h * 0.56, w * 0.54, h * 0.60, w * 0.50, h * 0.76)
-      ..cubicTo(w * 0.46, h * 0.60, w * 0.42, h * 0.56, w * 0.30, h * 0.50)
-      ..cubicTo(w * 0.42, h * 0.44, w * 0.46, h * 0.40, w * 0.50, h * 0.24)
+      ..moveTo(w * 0.50, h * 0.20)
+      ..cubicTo(w * 0.54, h * 0.39, w * 0.60, h * 0.45, w * 0.74, h * 0.51)
+      ..cubicTo(w * 0.60, h * 0.56, w * 0.54, h * 0.62, w * 0.50, h * 0.80)
+      ..cubicTo(w * 0.46, h * 0.62, w * 0.40, h * 0.56, w * 0.26, h * 0.51)
+      ..cubicTo(w * 0.40, h * 0.45, w * 0.46, h * 0.39, w * 0.50, h * 0.20)
       ..close();
     canvas.drawPath(innerSpark, innerHighlightPaint);
 
-    canvas.drawCircle(center, w * 0.13, highlightPaint);
+    canvas.drawCircle(center, w * 0.15, highlightPaint);
     canvas.drawCircle(
       Offset(w * 0.26, h * 0.27),
-      w * 0.045,
+      w * 0.050,
       particlePaint,
     );
     canvas.drawCircle(
       Offset(w * 0.78, h * 0.35),
-      w * 0.04,
-      mintParticlePaint,
+      w * 0.045,
+      particlePaint,
     );
     canvas.drawCircle(
-      Offset(w * 0.75, h * 0.78),
-      w * 0.035,
+      Offset(w * 0.25, h * 0.75),
+      w * 0.045,
       particlePaint,
+    );
+    canvas.drawCircle(
+      Offset(w * 0.76, h * 0.78),
+      w * 0.038,
+      particlePaint,
+    );
+    canvas.drawCircle(
+      Offset(w * 0.66, h * 0.24),
+      w * 0.030,
+      mintParticlePaint,
     );
   }
 

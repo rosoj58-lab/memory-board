@@ -47,11 +47,11 @@ The first release should not include endless mode, order memory, multiple object
 
 - 30 configured levels
 - One board per level
-- Levels 1-2: 3x3 board
-- Levels 3-5: 4x4 board
-- Levels 6-13: 5x5 board
-- Levels 14-30: 6x6 board
-- 3 to 20 sparks per level
+- Levels 1-3: 3x3 board, 3-4 sparks
+- Levels 4-10: 4x4 board, 4-6 sparks
+- Levels 11-22: 5x5 board, 6-10 sparks
+- Levels 23-30: 6x6 board, 8-10 sparks
+- Fixed 4s memorize time in Room 1
 - Memorization phase with visible sparks
 - Recall phase with hidden board
 - Correct tap reveals a spark and increments found count
@@ -127,6 +127,7 @@ Progress cards should stay compact enough that several rows of level tiles are v
 ### Gameplay
 
 - Use `Remember/Memorize` wording, not `Watch`.
+- Room 1 should keep integer timing only: `4s remember`.
 - Found counter should be clear, for example `2/4 found`.
 - Correct and wrong states must not rely only on color:
   - correct: spark reveal + glow

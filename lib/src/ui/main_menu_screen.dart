@@ -181,7 +181,11 @@ class _MainMenuScreenState extends State<MainMenuScreen> with RouteAware {
                                   ? null
                                   : () => _startCurrentLevel(progress),
                               icon: const Icon(Icons.play_arrow_rounded),
-                              label: Text(hasStarted ? 'Continue' : 'Start'),
+                              label: Text(
+                                hasStarted
+                                    ? 'Continue Level ${progress.highestUnlockedLevel}'
+                                    : 'Start Level 1',
+                              ),
                             );
                           },
                         ),

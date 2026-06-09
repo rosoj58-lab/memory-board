@@ -11,15 +11,18 @@ void main() {
     expect(levels.first.gridSize, 3);
     expect(levels.first.objectCount, 3);
     expect(levels[8].level, 9);
-    expect(levels[8].gridSize, 5);
+    expect(levels[8].gridSize, 4);
+    expect(levels[8].objectCount, 6);
     expect(levels[9].level, 10);
-    expect(levels[9].gridSize, 5);
-    expect(levels[9].objectCount, 10);
+    expect(levels[9].gridSize, 4);
+    expect(levels[9].objectCount, 6);
     expect(levels[22].level, 23);
     expect(levels[22].gridSize, 6);
+    expect(levels[22].objectCount, 8);
     expect(levels.last.level, 30);
     expect(levels.last.gridSize, 6);
-    expect(levels.last.objectCount, 20);
+    expect(levels.last.objectCount, 10);
+    expect(levels.every((level) => level.showTime.inSeconds == 4), isTrue);
   });
 
   test('star calculation follows MVP rules', () {

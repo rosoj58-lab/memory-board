@@ -26,7 +26,7 @@ The design direction is **Magic Sparks**: friendly dark teal night, mint UI acce
 - Lose popup
 - Final completion popup
 - 30 levels
-- 3x3, 4x4, 5x5, and 6x6 boards
+- 3x3, 4x4, 5x5, and late 6x6 boards
 - 3 hearts per level
 - 1-3 star rating
 - Level 1 tutorial only
@@ -55,12 +55,11 @@ Splash screen and app icon are included in the MVP direction, but they should be
 
 ## Difficulty
 
-- Levels 1-2: 3x3 board
-- Levels 3-5: 4x4 board
-- Levels 6-13: 5x5 board
-- Levels 14-30: 6x6 board
-- Spark count grows from 3 to 20
-- Memorize time gradually decreases from 4.0s to 2.0s
+- Levels 1-3: 3x3 board, 3-4 sparks
+- Levels 4-10: 4x4 board, 4-6 sparks
+- Levels 11-22: 5x5 board, 6-10 sparks
+- Levels 23-30: 6x6 board, 8-10 sparks
+- Memorize time is fixed at 4s in Room 1
 
 ## Stars
 

@@ -46,7 +46,7 @@ void main() {
     await tester.pumpWidget(testApp());
 
     expect(find.text('Memory Board'), findsOneWidget);
-    expect(find.text('Start'), findsOneWidget);
+    expect(find.text('Start Level 1'), findsOneWidget);
     expect(find.text('Levels'), findsOneWidget);
     expect(find.byKey(const ValueKey('menu-progress-summary')), findsOneWidget);
     expect(find.text('Goal 0/90'), findsOneWidget);
@@ -73,7 +73,7 @@ void main() {
     await tester.pumpWidget(testApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Start'), findsOneWidget);
+    expect(find.text('Start Level 1'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('menu-start-button')));
     await tester.pumpAndSettle();
@@ -88,7 +88,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Continue'), findsOneWidget);
+    expect(find.text('Continue Level 4'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('menu-start-button')));
     await tester.pumpAndSettle();
@@ -109,7 +109,7 @@ void main() {
 
     expect(find.text('Level 4'), findsOneWidget);
     expect(find.text('Board 4x4'), findsOneWidget);
-    expect(find.text('Find 6 sparks'), findsOneWidget);
+    expect(find.text('Find 4 sparks'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('next-challenge-start-button')));
     await tester.pumpAndSettle();
@@ -435,13 +435,13 @@ void main() {
     expect(find.text('Level 30'), findsOneWidget);
     expect(find.byKey(const ValueKey('level-info-strip')), findsOneWidget);
     expect(find.text('6x6'), findsOneWidget);
-    expect(find.text('20 sparks'), findsOneWidget);
-    expect(find.text('2s remember'), findsOneWidget);
+    expect(find.text('10 sparks'), findsOneWidget);
+    expect(find.text('4s remember'), findsOneWidget);
 
-    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(seconds: 4));
     await tester.pump();
 
-    final targets = generateTargets(level: 30, gridSize: 6, objectCount: 20);
+    final targets = generateTargets(level: 30, gridSize: 6, objectCount: 10);
     for (final target in targets) {
       await tester.tap(find.byKey(ValueKey('board-cell-$target')));
       await tester.pump(const Duration(milliseconds: 50));
