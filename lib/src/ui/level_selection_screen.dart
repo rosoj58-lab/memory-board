@@ -74,6 +74,15 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                   SliverToBoxAdapter(
                     child: _ProgressSummary(progress: progress),
                   ),
+                  SliverToBoxAdapter(
+                    child: _NextChallengePanel(
+                      config: levels[progress.highestUnlockedLevel - 1],
+                      onStart: () => _openLevel(
+                        config: levels[progress.highestUnlockedLevel - 1],
+                        progress: progress,
+                      ),
+                    ),
+                  ),
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     sliver: SliverGrid.builder(
@@ -94,39 +103,10 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                           highlighted: _highlightedLevel == config.level,
                           stars: stars,
                           onPressed: unlocked
-                              ? () async {
-                                  final previousHighest =
-                                      progress.highestUnlockedLevel;
-                                  setState(() => _highlightedLevel = null);
-                                  await Navigator.of(context).push(
-                                    MaterialPageRoute<void>(
-                                      builder: (_) => GameplayScreen(
-                                        config: config,
-                                        progressRepository:
-                                            widget.progressRepository,
-                                        settingsRepository:
-                                            widget.settingsRepository,
-                                      ),
-                                    ),
-                                  );
-                                  if (!mounted) {
-                                    return;
-                                  }
-                                  final nextProgress =
-                                      await widget.progressRepository.load();
-                                  if (!mounted) {
-                                    return;
-                                  }
-                                  setState(() {
-                                    _highlightedLevel =
-                                        nextProgress.highestUnlockedLevel >
-                                                previousHighest
-                                            ? nextProgress.highestUnlockedLevel
-                                            : null;
-                                    _progressFuture =
-                                        Future.value(nextProgress);
-                                  });
-                                }
+                              ? () => _openLevel(
+                                    config: config,
+                                    progress: progress,
+                                  )
                               : null,
                         );
                       },
@@ -139,6 +119,36 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _openLevel({
+    required LevelConfig config,
+    required PlayerProgress progress,
+  }) async {
+    final previousHighest = progress.highestUnlockedLevel;
+    setState(() => _highlightedLevel = null);
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GameplayScreen(
+          config: config,
+          progressRepository: widget.progressRepository,
+          settingsRepository: widget.settingsRepository,
+        ),
+      ),
+    );
+    if (!mounted) {
+      return;
+    }
+    final nextProgress = await widget.progressRepository.load();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _highlightedLevel = nextProgress.highestUnlockedLevel > previousHighest
+          ? nextProgress.highestUnlockedLevel
+          : null;
+      _progressFuture = Future.value(nextProgress);
+    });
   }
 
   Future<void> _showResetProgressDialog() async {
@@ -177,6 +187,85 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
       _highlightedLevel = null;
       _progressFuture = Future.value(progress);
     });
+  }
+}
+
+class _NextChallengePanel extends StatelessWidget {
+  const _NextChallengePanel({
+    required this.config,
+    required this.onStart,
+  });
+
+  final LevelConfig config;
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    final objectLabel = config.objectCount == 1 ? 'spirit' : 'spirits';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.surface.withAlpha(210),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0x333DEFD6)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Next challenge',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                  ),
+                  FilledButton.icon(
+                    key: const ValueKey('next-challenge-start-button'),
+                    onPressed: onStart,
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: const Text('Start'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                key: const ValueKey('next-challenge-info'),
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _SummaryMetric(
+                    icon: Icons.flag_rounded,
+                    label: 'Level',
+                    value: '${config.level}',
+                  ),
+                  _SummaryMetric(
+                    icon: Icons.grid_view_rounded,
+                    label: 'Board',
+                    value: '${config.gridSize}x${config.gridSize}',
+                  ),
+                  _SummaryMetric(
+                    icon: Icons.auto_awesome_rounded,
+                    label: 'Find',
+                    value: '${config.objectCount} $objectLabel',
+                  ),
+                  _SummaryMetric(
+                    icon: Icons.timer_rounded,
+                    label: 'Watch',
+                    value: _formatSeconds(config.showTime),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -265,6 +354,15 @@ class _ProgressSummary extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatSeconds(Duration duration) {
+  final milliseconds = duration.inMilliseconds;
+  if (milliseconds % Duration.millisecondsPerSecond == 0) {
+    return '${duration.inSeconds}s';
+  }
+  final seconds = milliseconds / Duration.millisecondsPerSecond;
+  return '${seconds.toStringAsFixed(1)}s';
 }
 
 class _SummaryMetric extends StatelessWidget {

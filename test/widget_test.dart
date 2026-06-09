@@ -57,7 +57,33 @@ void main() {
     expect(find.text('Unlocked 1/30'), findsOneWidget);
     expect(find.text('Stars 0/90'), findsOneWidget);
     expect(find.text('Completed 0/30'), findsOneWidget);
+    expect(find.text('Next challenge'), findsOneWidget);
+    expect(find.text('Level 1'), findsOneWidget);
+    expect(find.text('Board 3x3'), findsOneWidget);
+    expect(find.text('Find 3 spirits'), findsOneWidget);
+    expect(find.text('Watch 4s'), findsOneWidget);
     expect(find.byType(FilledButton), findsWidgets);
+  });
+
+  testWidgets('next challenge start opens the newest unlocked level',
+      (tester) async {
+    await tester.pumpWidget(
+      testApp(progressRepository: repositoryWithUnlockedLevels(4)),
+    );
+
+    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.pumpAndSettle();
+    await tester.pump();
+
+    expect(find.text('Level 4'), findsOneWidget);
+    expect(find.text('Board 3x3'), findsOneWidget);
+    expect(find.text('Find 4 spirits'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('next-challenge-start-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Level 4'), findsOneWidget);
+    expect(find.text('Remember the glowing tiles'), findsOneWidget);
   });
 
   testWidgets('settings dialog persists the vibration toggle', (tester) async {
