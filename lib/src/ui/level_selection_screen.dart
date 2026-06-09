@@ -43,6 +43,7 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     final levels = buildLevelConfigs();
+    final rooms = buildRoomConfigs();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Levels'),
@@ -69,7 +70,10 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                 controller: _scrollController,
                 slivers: [
                   SliverToBoxAdapter(
-                    child: _ProgressSummary(progress: progress),
+                    child: _RoomOverview(
+                      rooms: rooms,
+                      progress: progress,
+                    ),
                   ),
                   SliverToBoxAdapter(
                     child: _NextChallengePanel(
@@ -252,84 +256,163 @@ class _NextChallengePanel extends StatelessWidget {
   }
 }
 
-class _ProgressSummary extends StatelessWidget {
-  const _ProgressSummary({required this.progress});
+class _RoomOverview extends StatelessWidget {
+  const _RoomOverview({
+    required this.rooms,
+    required this.progress,
+  });
 
-  static const int maxLevels = 30;
-  static const int maxStars = maxLevels * 3;
-
+  final List<RoomConfig> rooms;
   final PlayerProgress progress;
 
   @override
   Widget build(BuildContext context) {
-    final totalStars = progress.bestStarsByLevel.values.fold<int>(
-      0,
-      (sum, stars) => sum + stars,
+    return SizedBox(
+      height: 160,
+      child: ListView.separated(
+        key: const ValueKey('room-overview'),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+        scrollDirection: Axis.horizontal,
+        itemCount: rooms.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          final room = rooms[index];
+          final roomStars = progress.starsInRange(
+            room.levelStart,
+            room.levelEnd,
+          );
+          final completed = progress.completedInRange(
+            room.levelStart,
+            room.levelEnd,
+          );
+          final unlocked = room.available && roomStars >= room.unlockStars;
+          final current = room.containsLevel(progress.highestUnlockedLevel);
+          return _RoomCard(
+            room: room,
+            stars: roomStars,
+            completed: completed,
+            unlocked: unlocked,
+            current: current,
+          );
+        },
+      ),
     );
-    final completedLevels =
-        progress.bestStarsByLevel.values.where((stars) => stars > 0).length;
-    final starProgress = totalStars / maxStars;
+  }
+}
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+class _RoomCard extends StatelessWidget {
+  const _RoomCard({
+    required this.room,
+    required this.stars,
+    required this.completed,
+    required this.unlocked,
+    required this.current,
+  });
+
+  final RoomConfig room;
+  final int stars;
+  final int completed;
+  final bool unlocked;
+  final bool current;
+
+  @override
+  Widget build(BuildContext context) {
+    final locked = !unlocked;
+    final progress = (stars / room.maxStars).clamp(0.0, 1.0);
+    return ConstrainedBox(
+      constraints: const BoxConstraints.tightFor(width: 228),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: AppColors.surface.withAlpha(210),
+          color: current
+              ? const Color(0xDD103A42)
+              : AppColors.surface.withAlpha(locked ? 150 : 210),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.white12),
+          border: Border.all(
+            color: current ? AppColors.gold : const Color(0x333DEFD6),
+            width: current ? 1.5 : 1,
+          ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  const Icon(
-                    Icons.auto_awesome_rounded,
-                    color: AppColors.gold,
-                    size: 20,
+                  Icon(
+                    locked ? Icons.lock_rounded : Icons.auto_awesome_rounded,
+                    color: locked ? Colors.white54 : AppColors.gold,
+                    size: 18,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 7),
                   Expanded(
                     child: Text(
-                      'Journey progress',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      'Room ${room.id}',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: locked ? Colors.white60 : Colors.white,
                             fontWeight: FontWeight.w800,
                           ),
                     ),
                   ),
+                  if (current)
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: AppColors.gold,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        child: Text(
+                          'Now',
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: AppColors.background,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 7),
+              Text(
+                room.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: locked ? Colors.white60 : Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                room.subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: locked ? Colors.white54 : AppColors.textSoft,
+                    ),
+              ),
+              const Spacer(),
               LinearProgressIndicator(
-                value: starProgress,
-                minHeight: 6,
+                value: progress,
+                minHeight: 5,
                 borderRadius: BorderRadius.circular(999),
                 backgroundColor: Colors.white12,
-                color: AppColors.gold,
+                color: locked ? Colors.white38 : AppColors.gold,
               ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _SummaryMetric(
-                    icon: Icons.lock_open_rounded,
-                    label: 'Unlocked',
-                    value: '${progress.highestUnlockedLevel}/$maxLevels',
-                  ),
-                  _SummaryMetric(
-                    icon: Icons.star_rounded,
-                    label: 'Stars',
-                    value: '$totalStars/$maxStars',
-                  ),
-                  _SummaryMetric(
-                    icon: Icons.flag_rounded,
-                    label: 'Completed',
-                    value: '$completedLevels/$maxLevels',
-                  ),
-                ],
+              const SizedBox(height: 7),
+              Text(
+                locked
+                    ? 'Unlock at ${room.unlockStars} stars'
+                    : '$completed/${room.levelCount} levels | $stars/${room.maxStars} stars',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: locked ? Colors.white54 : Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
             ],
           ),

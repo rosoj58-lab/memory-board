@@ -28,6 +28,21 @@ void main() {
     expect(progress.starsForLevel(1), 3);
   });
 
+  test('progress exposes totals and room ranges', () async {
+    final repository = InMemoryProgressRepository();
+
+    await repository.completeLevel(level: 1, stars: 3);
+    await repository.completeLevel(level: 2, stars: 2);
+    final progress = await repository.completeLevel(level: 3, stars: 1);
+
+    expect(progress.totalStars, 6);
+    expect(progress.completedLevelCount, 3);
+    expect(progress.starsInRange(1, 30), 6);
+    expect(progress.completedInRange(1, 30), 3);
+    expect(progress.starsInRange(31, 60), 0);
+    expect(progress.completedInRange(31, 60), 0);
+  });
+
   test('tutorial completed flag can be saved', () async {
     final repository = InMemoryProgressRepository();
 

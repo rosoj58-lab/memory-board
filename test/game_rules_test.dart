@@ -8,6 +8,8 @@ void main() {
 
     expect(levels, hasLength(30));
     expect(levels.first.level, 1);
+    expect(levels.first.roomId, 1);
+    expect(levels.first.mode, LevelMode.hiddenSet);
     expect(levels.first.gridSize, 3);
     expect(levels.first.objectCount, 3);
     expect(levels[8].level, 9);
@@ -23,6 +25,21 @@ void main() {
     expect(levels.last.gridSize, 6);
     expect(levels.last.objectCount, 10);
     expect(levels.every((level) => level.showTime.inSeconds == 4), isTrue);
+  });
+
+  test('room table reserves future gameplay modes', () {
+    final rooms = buildRoomConfigs();
+
+    expect(rooms, hasLength(3));
+    expect(rooms.first.name, 'Magic Glade');
+    expect(rooms.first.available, isTrue);
+    expect(rooms.first.mode, LevelMode.hiddenSet);
+    expect(rooms.first.maxStars, 90);
+    expect(rooms[1].name, 'Spark Trail');
+    expect(rooms[1].available, isFalse);
+    expect(rooms[1].unlockStars, 80);
+    expect(rooms[1].mode, LevelMode.sequenceTrail);
+    expect(rooms[2].mode, LevelMode.objectFilter);
   });
 
   test('star calculation follows MVP rules', () {

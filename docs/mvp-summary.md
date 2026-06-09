@@ -25,7 +25,8 @@ The design direction is **Magic Sparks**: friendly dark teal night, mint UI acce
 - Win popup
 - Lose popup
 - Final completion popup
-- 30 levels
+- Room 1 with 30 playable levels
+- Locked future room cards for planned level packs
 - 3x3, 4x4, 5x5, and late 6x6 boards
 - 3 hearts per level
 - 1-3 star rating
@@ -55,11 +56,22 @@ Splash screen and app icon are included in the MVP direction, but they should be
 
 ## Difficulty
 
+### Room 1: Magic Glade
+
+- Mode: hidden-set memory
+- Goal: remember where all sparks were and tap those cells in any order
 - Levels 1-3: 3x3 board, 3-4 sparks
 - Levels 4-10: 4x4 board, 4-6 sparks
 - Levels 11-22: 5x5 board, 6-10 sparks
 - Levels 23-30: 6x6 board, 8-10 sparks
 - Memorize time is fixed at 4s in Room 1
+
+### Reserved Future Rooms
+
+- Room 2: Spark Trail, planned sequence memory. Sparks appear one by one like a path; the player repeats the path in order.
+- Room 3: Moon Garden, planned object-filter memory. The player chooses only the requested object type.
+
+Future rooms are visible as locked direction in the level selection UI, but only Room 1 is playable in the MVP.
 
 ## Stars
 
@@ -77,7 +89,8 @@ Splash screen and app icon are included in the MVP direction, but they should be
 5. Use "Remember/Memorize" wording instead of "Watch".
 6. Make the spark object readable as magic/light, not a medical cross.
 7. Add small reward animations without slowing gameplay.
+8. Keep room cards compact so level tiles remain visible without excessive scrolling.
 
 ## Future Ideas
 
-Future versions can add endless trainer mode, 100 levels, order/sequence memory, object skins, color filtering, hints, sound effects, achievements, daily challenges, and monetization only after the core game feels good.
+Future versions can add playable Room 2 sequence memory, playable Room 3 object filtering, endless trainer mode, object skins, hints, sound effects, achievements, daily challenges, and monetization only after the core game feels good.

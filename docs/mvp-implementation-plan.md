@@ -10,7 +10,7 @@ Memorize glowing sparks on a board, wait until they hide, then tap the correct h
 
 The visual direction is **Magic Sparks**: bright friendly night, dark teal surfaces, mint controls, yellow spark/reward accents, soft glow, readable rounded tiles, and no copied ghost/reference characters.
 
-The first release should not include endless mode, order memory, multiple object types, shop, ads, music, leaderboards, cloud saves, or complex asset packs. Those can come later after the basic game loop and navigation feel good on a real phone.
+The first release should not include endless mode, playable order memory, playable multiple object types, shop, ads, music, leaderboards, cloud saves, or complex asset packs. Those can come later after the basic game loop and navigation feel good on a real phone.
 
 ## Current MVP Scope
 
@@ -45,7 +45,7 @@ The first release should not include endless mode, order memory, multiple object
 
 ### Core Gameplay
 
-- 30 configured levels
+- Room 1 with 30 configured playable levels
 - One board per level
 - Levels 1-3: 3x3 board, 3-4 sparks
 - Levels 4-10: 4x4 board, 4-6 sparks
@@ -62,6 +62,28 @@ The first release should not include endless mode, order memory, multiple object
   - 3 stars for 0 mistakes
   - 2 stars for 1 mistake
   - 1 star for 2 mistakes
+
+### Room Structure
+
+The code now has explicit room and mode configuration:
+
+- `LevelMode.hiddenSet`: implemented Room 1 mode.
+- `LevelMode.sequenceTrail`: reserved for Room 2.
+- `LevelMode.objectFilter`: reserved for Room 3.
+
+Room 1 is the only playable MVP room:
+
+- Room name: `Magic Glade`
+- Levels: 1-30
+- Max stars: 90
+- Unlock: available from the start
+
+Reserved future rooms:
+
+- Room 2: `Spark Trail`, levels 31-60, unlock target 80 stars, sequence/path memory.
+- Room 3: `Moon Garden`, levels 61-90, unlock target 170 stars, object-filter memory.
+
+Future rooms can be visible as locked cards in the level selection UI, but they should not start gameplay until their mechanics are implemented and tested.
 
 ### Progress
 
@@ -108,6 +130,11 @@ Avoid adding a vibration plugin until we need custom vibration patterns.
 
 ### Level Selection
 
+The screen starts with compact room cards:
+
+- Current playable room: Room 1, progress shown as completed levels and stars.
+- Locked planned rooms: Room 2 and Room 3, with unlock target copy.
+
 Level tiles must have distinct states:
 
 - Completed:
@@ -122,7 +149,7 @@ Level tiles must have distinct states:
   - dimmed tile
   - lock icon
 
-Progress cards should stay compact enough that several rows of level tiles are visible on phone screens.
+Progress and room cards should stay compact enough that level tiles are visible without excessive scrolling on phone screens.
 
 ### Gameplay
 
@@ -316,8 +343,20 @@ Status: implemented and still balancing.
 - Level 1 tutorial overlay
 - Delayed animated pointer after recall inactivity
 - Tutorial completion persistence
-- 30-level table with current harder progression
+- 30-level Room 1 table with easier, human-feasible progression
 - Level selection star display
+
+### Milestone 3.5: Room Foundation
+
+Status: implemented as non-playable structure.
+
+- `RoomConfig` added
+- `LevelMode` added
+- Room 1 maps to the current 30 hidden-set levels
+- Room 2 is reserved for sequence trail gameplay
+- Room 3 is reserved for object-filter gameplay
+- Level selection shows compact room cards
+- Progress exposes total stars and room-range stats
 
 ### Milestone 4: UI/UX Foundation Pass
 
@@ -451,6 +490,7 @@ Android phone testing still remains required because haptics, APK install, and t
 ### P1
 
 - Stronger progress presentation
+- Room unlock flow when Room 2 becomes playable
 - Heart loss animation and clearer lost-heart state
 - Sequential star reveal
 - Win particles
@@ -462,7 +502,7 @@ Android phone testing still remains required because haptics, APK install, and t
 - Animated logo/background particles
 - App icon and splash final art pass
 - Additional object skins
-- Future level packs and unlock thresholds
+- Future playable level packs and unlock thresholds
 
 ## What Is Explicitly Out Of MVP
 
@@ -470,9 +510,8 @@ Android phone testing still remains required because haptics, APK install, and t
 - Sound effects
 - Endless trainer mode
 - Score mode
-- 100 levels
-- Order/sequence memory
-- Color/type filtering
+- Playable Room 2 sequence memory
+- Playable Room 3 color/type filtering
 - Multiple boards inside one level
 - Hint economy
 - Shop

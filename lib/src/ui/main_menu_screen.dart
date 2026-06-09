@@ -215,26 +215,15 @@ class _MenuProgressSummary extends StatelessWidget {
     required this.hasStarted,
   });
 
-  static const int maxLevels = 30;
-  static const int maxStars = maxLevels * 3;
-
   final PlayerProgress? progress;
   final bool hasStarted;
 
   @override
   Widget build(BuildContext context) {
     final loadedProgress = progress;
-    final totalStars = loadedProgress == null
-        ? 0
-        : loadedProgress.bestStarsByLevel.values.fold<int>(
-            0,
-            (sum, stars) => sum + stars,
-          );
-    final completedLevels = loadedProgress == null
-        ? 0
-        : loadedProgress.bestStarsByLevel.values
-            .where((stars) => stars > 0)
-            .length;
+    final totalStars = loadedProgress?.totalStars ?? 0;
+    final completedLevels =
+        loadedProgress == null ? 0 : loadedProgress.completedLevelCount;
     final unlocked = loadedProgress?.highestUnlockedLevel ?? 1;
 
     return DecoratedBox(
@@ -248,7 +237,7 @@ class _MenuProgressSummary extends StatelessWidget {
         child: Column(
           children: [
             LinearProgressIndicator(
-              value: totalStars / maxStars,
+              value: totalStars / maxImplementedStars,
               minHeight: 6,
               borderRadius: BorderRadius.circular(999),
               backgroundColor: Colors.white12,
@@ -263,15 +252,15 @@ class _MenuProgressSummary extends StatelessWidget {
               children: [
                 _MenuProgressMetric(
                   label: hasStarted ? 'Stars' : 'Goal',
-                  value: '$totalStars/$maxStars',
+                  value: '$totalStars/$maxImplementedStars',
                 ),
                 _MenuProgressMetric(
                   label: 'Unlocked',
-                  value: '$unlocked/$maxLevels',
+                  value: '$unlocked/$maxImplementedLevel',
                 ),
                 _MenuProgressMetric(
                   label: 'Completed',
-                  value: '$completedLevels/$maxLevels',
+                  value: '$completedLevels/$maxImplementedLevel',
                 ),
               ],
             ),

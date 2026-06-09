@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../game/level_config.dart';
+
 class PlayerProgress {
   const PlayerProgress({
     required this.highestUnlockedLevel,
@@ -24,6 +26,34 @@ class PlayerProgress {
   int starsForLevel(int level) => bestStarsByLevel[level] ?? 0;
 
   bool isLevelUnlocked(int level) => level <= highestUnlockedLevel;
+
+  int get totalStars => bestStarsByLevel.values.fold<int>(
+        0,
+        (sum, stars) => sum + stars,
+      );
+
+  int get completedLevelCount =>
+      bestStarsByLevel.values.where((stars) => stars > 0).length;
+
+  int starsInRange(int startLevel, int endLevel) {
+    return bestStarsByLevel.entries.fold<int>(
+      0,
+      (sum, entry) {
+        if (entry.key < startLevel || entry.key > endLevel) {
+          return sum;
+        }
+        return sum + entry.value;
+      },
+    );
+  }
+
+  int completedInRange(int startLevel, int endLevel) {
+    return bestStarsByLevel.entries.where((entry) {
+      return entry.key >= startLevel &&
+          entry.key <= endLevel &&
+          entry.value > 0;
+    }).length;
+  }
 
   PlayerProgress copyWith({
     int? highestUnlockedLevel,
@@ -81,7 +111,8 @@ class PreferencesProgressRepository implements ProgressRepository {
     }
 
     return PlayerProgress(
-      highestUnlockedLevel: highestUnlockedLevel.clamp(1, 30).toInt(),
+      highestUnlockedLevel:
+          highestUnlockedLevel.clamp(1, maxImplementedLevel).toInt(),
       bestStarsByLevel: Map.unmodifiable(bestStarsByLevel),
       tutorialCompleted: tutorialCompleted,
     );
@@ -100,8 +131,10 @@ class PreferencesProgressRepository implements ProgressRepository {
     }
 
     final nextProgress = progress.copyWith(
-      highestUnlockedLevel: level < 30
-          ? progress.highestUnlockedLevel.clamp(level + 1, 30).toInt()
+      highestUnlockedLevel: level < maxImplementedLevel
+          ? progress.highestUnlockedLevel
+              .clamp(level + 1, maxImplementedLevel)
+              .toInt()
           : progress.highestUnlockedLevel,
       bestStarsByLevel: Map.unmodifiable(nextStarsByLevel),
     );
@@ -164,8 +197,10 @@ class InMemoryProgressRepository implements ProgressRepository {
     }
 
     _progress = _progress.copyWith(
-      highestUnlockedLevel: level < 30
-          ? _progress.highestUnlockedLevel.clamp(level + 1, 30).toInt()
+      highestUnlockedLevel: level < maxImplementedLevel
+          ? _progress.highestUnlockedLevel
+              .clamp(level + 1, maxImplementedLevel)
+              .toInt()
           : _progress.highestUnlockedLevel,
       bestStarsByLevel: Map.unmodifiable(nextStarsByLevel),
     );

@@ -57,9 +57,12 @@ void main() {
 
     expect(find.text('Levels'), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
-    expect(find.text('Unlocked 1/30'), findsOneWidget);
-    expect(find.text('Stars 0/90'), findsOneWidget);
-    expect(find.text('Completed 0/30'), findsOneWidget);
+    expect(find.byKey(const ValueKey('room-overview')), findsOneWidget);
+    expect(find.text('Room 1'), findsOneWidget);
+    expect(find.text('Magic Glade'), findsOneWidget);
+    expect(find.text('0/30 levels | 0/90 stars'), findsOneWidget);
+    expect(find.text('Room 2'), findsOneWidget);
+    expect(find.text('Unlock at 80 stars'), findsOneWidget);
     expect(find.text('Next challenge'), findsOneWidget);
     expect(find.text('Level 1'), findsOneWidget);
     expect(find.text('Board 3x3'), findsOneWidget);
@@ -165,9 +168,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.pump();
 
-    expect(find.text('Unlocked 4/30'), findsOneWidget);
-    expect(find.text('Stars 5/90'), findsOneWidget);
-    expect(find.text('Completed 2/30'), findsOneWidget);
+    expect(find.text('2/30 levels | 5/90 stars'), findsOneWidget);
+    expect(find.text('Magic Glade'), findsOneWidget);
   });
 
   testWidgets('level one shows tutorial instruction first', (tester) async {
@@ -224,8 +226,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.pump();
 
-    expect(find.text('Unlocked 3/30'), findsOneWidget);
-    expect(find.text('Stars 4/90'), findsOneWidget);
+    expect(find.text('2/30 levels | 4/90 stars'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('levels-settings-button')));
     await tester.pumpAndSettle();
@@ -239,8 +240,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('reset-confirm-button')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Unlocked 1/30'), findsOneWidget);
-    expect(find.text('Stars 0/90'), findsOneWidget);
+    expect(find.text('0/30 levels | 0/90 stars'), findsOneWidget);
 
     final progress = await repository.load();
     expect(progress.highestUnlockedLevel, 1);
