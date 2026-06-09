@@ -3,17 +3,21 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../data/progress_repository.dart';
+import '../data/settings_repository.dart';
 import '../game/level_config.dart';
 import 'app_chrome.dart';
 import 'gameplay_screen.dart';
+import 'settings_dialog.dart';
 
 class LevelSelectionScreen extends StatefulWidget {
   const LevelSelectionScreen({
     required this.progressRepository,
+    required this.settingsRepository,
     super.key,
   });
 
   final ProgressRepository progressRepository;
+  final SettingsRepository settingsRepository;
 
   @override
   State<LevelSelectionScreen> createState() => _LevelSelectionScreenState();
@@ -41,6 +45,17 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
             tooltip: 'Reset progress',
             onPressed: _showResetProgressDialog,
             icon: const Icon(Icons.restart_alt_rounded),
+          ),
+          IconButton(
+            key: const ValueKey('levels-settings-button'),
+            tooltip: 'Settings',
+            onPressed: () {
+              showSettingsDialog(
+                context: context,
+                settingsRepository: widget.settingsRepository,
+              );
+            },
+            icon: const Icon(Icons.settings_rounded),
           ),
         ],
       ),
@@ -89,6 +104,8 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                                         config: config,
                                         progressRepository:
                                             widget.progressRepository,
+                                        settingsRepository:
+                                            widget.settingsRepository,
                                       ),
                                     ),
                                   );

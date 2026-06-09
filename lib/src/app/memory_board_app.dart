@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 
 import '../data/progress_repository.dart';
+import '../data/settings_repository.dart';
 import '../ui/app_chrome.dart';
 import '../ui/main_menu_screen.dart';
 
 class MemoryBoardApp extends StatelessWidget {
   const MemoryBoardApp({
     required this.progressRepository,
+    required this.settingsRepository,
     super.key,
   });
 
   final ProgressRepository progressRepository;
+  final SettingsRepository settingsRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +37,10 @@ class MemoryBoardApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: MainMenuScreen(progressRepository: progressRepository),
+      home: MainMenuScreen(
+        progressRepository: progressRepository,
+        settingsRepository: settingsRepository,
+      ),
     );
   }
 }

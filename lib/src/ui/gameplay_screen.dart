@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/progress_repository.dart';
+import '../data/settings_repository.dart';
 import '../game/game_rules.dart';
 import '../game/level_config.dart';
 import 'app_chrome.dart';
@@ -15,11 +16,13 @@ class GameplayScreen extends StatefulWidget {
   const GameplayScreen({
     required this.config,
     required this.progressRepository,
+    required this.settingsRepository,
     super.key,
   });
 
   final LevelConfig config;
   final ProgressRepository progressRepository;
+  final SettingsRepository settingsRepository;
 
   @override
   State<GameplayScreen> createState() => _GameplayScreenState();
@@ -40,12 +43,14 @@ class _GameplayScreenState extends State<GameplayScreen> {
   bool _tutorialEnabled = false;
   bool _tutorialIntroVisible = false;
   bool _tutorialRecallPromptVisible = false;
+  bool _hapticsEnabled = true;
 
   @override
   void initState() {
     super.initState();
     _startLevel();
     _loadTutorialState();
+    _loadSettings();
   }
 
   @override
@@ -86,6 +91,32 @@ class _GameplayScreenState extends State<GameplayScreen> {
       _tutorialEnabled = true;
       _tutorialIntroVisible = true;
     });
+  }
+
+  Future<void> _loadSettings() async {
+    final settings = await widget.settingsRepository.load();
+    if (!mounted) {
+      return;
+    }
+    setState(() => _hapticsEnabled = settings.hapticsEnabled);
+  }
+
+  void _selectionClick() {
+    if (_hapticsEnabled) {
+      unawaited(HapticFeedback.selectionClick());
+    }
+  }
+
+  void _lightImpact() {
+    if (_hapticsEnabled) {
+      unawaited(HapticFeedback.lightImpact());
+    }
+  }
+
+  void _vibrate() {
+    if (_hapticsEnabled) {
+      unawaited(HapticFeedback.vibrate());
+    }
   }
 
   void _scheduleMemorizeTimer(Duration duration) {
@@ -177,7 +208,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
     }
 
     if (_targets.contains(index)) {
-      HapticFeedback.selectionClick();
+      _selectionClick();
       setState(() {
         _correct.add(index);
         _tutorialRecallPromptVisible = false;
@@ -186,7 +217,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
         }
       });
       if (_phase == GamePhase.won) {
-        HapticFeedback.lightImpact();
+        _lightImpact();
         if (_tutorialEnabled && widget.config.level == 1) {
           await widget.progressRepository.markTutorialCompleted();
           _tutorialEnabled = false;
@@ -200,7 +231,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
       return;
     }
 
-    HapticFeedback.vibrate();
+    _vibrate();
     setState(() {
       _wrong.add(index);
       _mistakes += 1;
@@ -260,6 +291,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
                       builder: (_) => GameplayScreen(
                         config: buildLevelConfigs()[widget.config.level],
                         progressRepository: widget.progressRepository,
+                        settingsRepository: widget.settingsRepository,
                       ),
                     ),
                   );
@@ -758,9 +790,8 @@ class _BoardCellState extends State<_BoardCell>
       builder: (context, child) {
         final value = _feedbackController.value;
         final shake = widget.isWrong ? math.sin(value * math.pi * 6) * 5 : 0.0;
-        final bounce = widget.isCorrect
-            ? 1 + math.sin(value * math.pi) * 0.08
-            : 1.0;
+        final bounce =
+            widget.isCorrect ? 1 + math.sin(value * math.pi) * 0.08 : 1.0;
 
         return Transform.translate(
           offset: Offset(shake, 0),

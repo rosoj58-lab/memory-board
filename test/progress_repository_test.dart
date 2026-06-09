@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memory_board/src/data/progress_repository.dart';
+import 'package:memory_board/src/data/settings_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -79,5 +80,34 @@ void main() {
     expect(progress.highestUnlockedLevel, 1);
     expect(progress.bestStarsByLevel, isEmpty);
     expect(progress.tutorialCompleted, isFalse);
+  });
+
+  test('initial settings enable haptics', () async {
+    final repository = InMemorySettingsRepository();
+    final settings = await repository.load();
+
+    expect(settings.hapticsEnabled, isTrue);
+  });
+
+  test('in-memory settings can disable haptics', () async {
+    final repository = InMemorySettingsRepository();
+
+    final settings = await repository.setHapticsEnabled(false);
+
+    expect(settings.hapticsEnabled, isFalse);
+    expect((await repository.load()).hapticsEnabled, isFalse);
+  });
+
+  test('preferences settings persist haptics toggle', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final preferences = await SharedPreferences.getInstance();
+
+    var repository = PreferencesSettingsRepository(preferences);
+    await repository.setHapticsEnabled(false);
+
+    repository = PreferencesSettingsRepository(preferences);
+    final settings = await repository.load();
+
+    expect(settings.hapticsEnabled, isFalse);
   });
 }

@@ -2,11 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memory_board/src/app/memory_board_app.dart';
 import 'package:memory_board/src/data/progress_repository.dart';
+import 'package:memory_board/src/data/settings_repository.dart';
 import 'package:memory_board/src/game/game_rules.dart';
 import 'package:memory_board/src/game/level_config.dart';
 import 'package:memory_board/src/ui/gameplay_screen.dart';
 
 void main() {
+  MemoryBoardApp testApp({
+    ProgressRepository? progressRepository,
+    SettingsRepository? settingsRepository,
+  }) {
+    return MemoryBoardApp(
+      progressRepository: progressRepository ?? InMemoryProgressRepository(),
+      settingsRepository: settingsRepository ?? InMemorySettingsRepository(),
+    );
+  }
+
   InMemoryProgressRepository repositoryWithCompletedTutorial() {
     return InMemoryProgressRepository(
       const PlayerProgress(
@@ -32,9 +43,7 @@ void main() {
   }
 
   testWidgets('main menu opens level selection', (tester) async {
-    await tester.pumpWidget(
-      MemoryBoardApp(progressRepository: InMemoryProgressRepository()),
-    );
+    await tester.pumpWidget(testApp());
 
     expect(find.text('Memory Board'), findsOneWidget);
     expect(find.text('Play'), findsOneWidget);
@@ -51,10 +60,39 @@ void main() {
     expect(find.byType(FilledButton), findsWidgets);
   });
 
+  testWidgets('settings dialog persists the vibration toggle', (tester) async {
+    final settingsRepository = InMemorySettingsRepository();
+    await tester.pumpWidget(
+      testApp(settingsRepository: settingsRepository),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('menu-settings-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Settings'), findsOneWidget);
+    expect(find.text('Vibration'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('haptics-toggle')));
+    await tester.pumpAndSettle();
+
+    expect((await settingsRepository.load()).hapticsEnabled, isFalse);
+
+    await tester.tap(find.byKey(const ValueKey('settings-done-button')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('menu-settings-button')));
+    await tester.pumpAndSettle();
+
+    final switchTile = tester.widget<SwitchListTile>(
+      find.byKey(const ValueKey('haptics-toggle')),
+    );
+    expect(switchTile.value, isFalse);
+  });
+
   testWidgets('level selection summary reflects saved progress',
       (tester) async {
     await tester.pumpWidget(
-      MemoryBoardApp(
+      testApp(
         progressRepository: repositoryWithProgress(
           const PlayerProgress(
             highestUnlockedLevel: 4,
@@ -76,7 +114,7 @@ void main() {
 
   testWidgets('level one shows tutorial instruction first', (tester) async {
     await tester.pumpWidget(
-      MemoryBoardApp(progressRepository: repositoryWithCompletedTutorial()),
+      testApp(progressRepository: repositoryWithCompletedTutorial()),
     );
 
     await tester.tap(find.byIcon(Icons.play_arrow_rounded));
@@ -92,7 +130,7 @@ void main() {
 
   testWidgets('locked level cannot be opened', (tester) async {
     await tester.pumpWidget(
-      MemoryBoardApp(progressRepository: InMemoryProgressRepository()),
+      testApp(),
     );
 
     await tester.tap(find.byIcon(Icons.play_arrow_rounded));
@@ -117,7 +155,7 @@ void main() {
       ),
     );
     await tester.pumpWidget(
-      MemoryBoardApp(progressRepository: repository),
+      testApp(progressRepository: repository),
     );
 
     await tester.tap(find.byIcon(Icons.play_arrow_rounded));
@@ -146,7 +184,7 @@ void main() {
 
   testWidgets('pause dialog can resume the level', (tester) async {
     await tester.pumpWidget(
-      MemoryBoardApp(progressRepository: repositoryWithCompletedTutorial()),
+      testApp(progressRepository: repositoryWithCompletedTutorial()),
     );
 
     await tester.tap(find.byIcon(Icons.play_arrow_rounded));
@@ -170,7 +208,7 @@ void main() {
   testWidgets('winning level one unlocks next gameplay screen', (tester) async {
     final repository = repositoryWithCompletedTutorial();
     await tester.pumpWidget(
-      MemoryBoardApp(progressRepository: repository),
+      testApp(progressRepository: repository),
     );
 
     await tester.tap(find.byIcon(Icons.play_arrow_rounded));
@@ -207,7 +245,7 @@ void main() {
       (tester) async {
     final repository = repositoryWithCompletedTutorial();
     await tester.pumpWidget(
-      MemoryBoardApp(progressRepository: repository),
+      testApp(progressRepository: repository),
     );
 
     await tester.tap(find.byIcon(Icons.play_arrow_rounded));
@@ -239,7 +277,7 @@ void main() {
 
   testWidgets('three wrong taps show the lose dialog', (tester) async {
     await tester.pumpWidget(
-      MemoryBoardApp(progressRepository: repositoryWithCompletedTutorial()),
+      testApp(progressRepository: repositoryWithCompletedTutorial()),
     );
 
     await tester.tap(find.byIcon(Icons.play_arrow_rounded));
@@ -276,6 +314,7 @@ void main() {
         home: GameplayScreen(
           config: buildLevelConfigs().last,
           progressRepository: repository,
+          settingsRepository: InMemorySettingsRepository(),
         ),
       ),
     );
@@ -312,7 +351,7 @@ void main() {
       (tester) async {
     final repository = InMemoryProgressRepository();
     await tester.pumpWidget(
-      MemoryBoardApp(progressRepository: repository),
+      testApp(progressRepository: repository),
     );
 
     await tester.tap(find.byIcon(Icons.play_arrow_rounded));

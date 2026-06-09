@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../data/progress_repository.dart';
+import '../data/settings_repository.dart';
 import 'app_chrome.dart';
 import 'level_selection_screen.dart';
+import 'settings_dialog.dart';
 
 class MainMenuScreen extends StatelessWidget {
   const MainMenuScreen({
     required this.progressRepository,
+    required this.settingsRepository,
     super.key,
   });
 
   final ProgressRepository progressRepository;
+  final SettingsRepository settingsRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +26,20 @@ class MainMenuScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
+                    key: const ValueKey('menu-settings-button'),
+                    tooltip: 'Settings',
+                    onPressed: () {
+                      showSettingsDialog(
+                        context: context,
+                        settingsRepository: settingsRepository,
+                      );
+                    },
+                    icon: const Icon(Icons.settings_rounded),
+                  ),
+                ),
                 const Spacer(),
                 const Center(child: SpiritMark(size: 92, glowing: true)),
                 const SizedBox(height: 24),
@@ -47,6 +65,7 @@ class MainMenuScreen extends StatelessWidget {
                       MaterialPageRoute<void>(
                         builder: (_) => LevelSelectionScreen(
                           progressRepository: progressRepository,
+                          settingsRepository: settingsRepository,
                         ),
                       ),
                     );
