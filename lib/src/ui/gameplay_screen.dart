@@ -403,7 +403,9 @@ class _GameplayScreenState extends State<GameplayScreen> {
                             color: AppColors.textSoft,
                           ),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 10),
+                    _LevelInfoStrip(config: config),
+                    const SizedBox(height: 16),
                     Expanded(
                       child: Center(
                         child: AspectRatio(
@@ -444,6 +446,85 @@ class _GameplayScreenState extends State<GameplayScreen> {
       ),
     );
   }
+}
+
+class _LevelInfoStrip extends StatelessWidget {
+  const _LevelInfoStrip({required this.config});
+
+  final LevelConfig config;
+
+  @override
+  Widget build(BuildContext context) {
+    final objectLabel = config.objectCount == 1 ? 'spirit' : 'spirits';
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xBB102B34),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0x333DEFD6)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Wrap(
+          key: const ValueKey('level-info-strip'),
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 10,
+          runSpacing: 6,
+          children: [
+            _LevelInfoChip(
+              icon: Icons.grid_view_rounded,
+              label: '${config.gridSize}x${config.gridSize}',
+            ),
+            _LevelInfoChip(
+              icon: Icons.auto_awesome_rounded,
+              label: '${config.objectCount} $objectLabel',
+            ),
+            _LevelInfoChip(
+              icon: Icons.timer_rounded,
+              label: '${_formatSeconds(config.showTime)} watch',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LevelInfoChip extends StatelessWidget {
+  const _LevelInfoChip({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: AppColors.primary, size: 16),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+String _formatSeconds(Duration duration) {
+  final milliseconds = duration.inMilliseconds;
+  if (milliseconds % Duration.millisecondsPerSecond == 0) {
+    return '${duration.inSeconds}s';
+  }
+  final seconds = milliseconds / Duration.millisecondsPerSecond;
+  return '${seconds.toStringAsFixed(1)}s';
 }
 
 class _HeartIndicator extends StatelessWidget {

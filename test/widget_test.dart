@@ -125,6 +125,10 @@ void main() {
 
     expect(find.text('Level 1'), findsOneWidget);
     expect(find.text('Remember the glowing tiles'), findsOneWidget);
+    expect(find.byKey(const ValueKey('level-info-strip')), findsOneWidget);
+    expect(find.text('3x3'), findsOneWidget);
+    expect(find.text('3 spirits'), findsOneWidget);
+    expect(find.text('4s watch'), findsOneWidget);
     expect(find.text('0/3'), findsOneWidget);
   });
 
@@ -322,6 +326,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Level 30'), findsOneWidget);
+    expect(find.byKey(const ValueKey('level-info-strip')), findsOneWidget);
+    expect(find.text('5x5'), findsOneWidget);
+    expect(find.text('8 spirits'), findsOneWidget);
+    expect(find.text('2.5s watch'), findsOneWidget);
 
     await tester.pump(const Duration(milliseconds: 2500));
     await tester.pump();
