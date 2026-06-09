@@ -35,6 +35,18 @@ void main() {
     expect(progress.tutorialCompleted, isTrue);
   });
 
+  test('in-memory progress can be reset', () async {
+    final repository = InMemoryProgressRepository();
+    await repository.completeLevel(level: 1, stars: 3);
+    await repository.markTutorialCompleted();
+
+    final progress = await repository.reset();
+
+    expect(progress.highestUnlockedLevel, 1);
+    expect(progress.bestStarsByLevel, isEmpty);
+    expect(progress.tutorialCompleted, isFalse);
+  });
+
   test('preferences repository persists progress across instances', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final preferences = await SharedPreferences.getInstance();
@@ -50,5 +62,22 @@ void main() {
     expect(progress.highestUnlockedLevel, 2);
     expect(progress.starsForLevel(1), 2);
     expect(progress.tutorialCompleted, isTrue);
+  });
+
+  test('preferences repository reset clears stored progress', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final preferences = await SharedPreferences.getInstance();
+
+    var repository = PreferencesProgressRepository(preferences);
+    await repository.completeLevel(level: 1, stars: 3);
+    await repository.markTutorialCompleted();
+    await repository.reset();
+
+    repository = PreferencesProgressRepository(preferences);
+    final progress = await repository.load();
+
+    expect(progress.highestUnlockedLevel, 1);
+    expect(progress.bestStarsByLevel, isEmpty);
+    expect(progress.tutorialCompleted, isFalse);
   });
 }

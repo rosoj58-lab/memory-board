@@ -47,6 +47,8 @@ abstract interface class ProgressRepository {
   });
 
   Future<PlayerProgress> markTutorialCompleted();
+
+  Future<PlayerProgress> reset();
 }
 
 class PreferencesProgressRepository implements ProgressRepository {
@@ -114,6 +116,13 @@ class PreferencesProgressRepository implements ProgressRepository {
     return progress;
   }
 
+  @override
+  Future<PlayerProgress> reset() async {
+    final progress = PlayerProgress.initial();
+    await _save(progress);
+    return progress;
+  }
+
   Future<void> _save(PlayerProgress progress) async {
     await _preferences.setInt(
       _highestUnlockedLevelKey,
@@ -166,6 +175,12 @@ class InMemoryProgressRepository implements ProgressRepository {
   @override
   Future<PlayerProgress> markTutorialCompleted() async {
     _progress = _progress.copyWith(tutorialCompleted: true);
+    return _progress;
+  }
+
+  @override
+  Future<PlayerProgress> reset() async {
+    _progress = PlayerProgress.initial();
     return _progress;
   }
 }

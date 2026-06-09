@@ -27,6 +27,10 @@ void main() {
     );
   }
 
+  InMemoryProgressRepository repositoryWithProgress(PlayerProgress progress) {
+    return InMemoryProgressRepository(progress);
+  }
+
   testWidgets('main menu opens level selection', (tester) async {
     await tester.pumpWidget(
       MemoryBoardApp(progressRepository: InMemoryProgressRepository()),
@@ -41,7 +45,33 @@ void main() {
 
     expect(find.text('Levels'), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
+    expect(find.text('Unlocked 1/30'), findsOneWidget);
+    expect(find.text('Stars 0/90'), findsOneWidget);
+    expect(find.text('Completed 0/30'), findsOneWidget);
     expect(find.byType(FilledButton), findsWidgets);
+  });
+
+  testWidgets('level selection summary reflects saved progress',
+      (tester) async {
+    await tester.pumpWidget(
+      MemoryBoardApp(
+        progressRepository: repositoryWithProgress(
+          const PlayerProgress(
+            highestUnlockedLevel: 4,
+            bestStarsByLevel: <int, int>{1: 3, 2: 2},
+            tutorialCompleted: true,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.pumpAndSettle();
+    await tester.pump();
+
+    expect(find.text('Unlocked 4/30'), findsOneWidget);
+    expect(find.text('Stars 5/90'), findsOneWidget);
+    expect(find.text('Completed 2/30'), findsOneWidget);
   });
 
   testWidgets('level one shows tutorial instruction first', (tester) async {
@@ -75,6 +105,43 @@ void main() {
 
     expect(find.text('Levels'), findsOneWidget);
     expect(find.text('Level 2'), findsNothing);
+  });
+
+  testWidgets('reset progress dialog restores the initial state',
+      (tester) async {
+    final repository = repositoryWithProgress(
+      const PlayerProgress(
+        highestUnlockedLevel: 3,
+        bestStarsByLevel: <int, int>{1: 3, 2: 1},
+        tutorialCompleted: true,
+      ),
+    );
+    await tester.pumpWidget(
+      MemoryBoardApp(progressRepository: repository),
+    );
+
+    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.pumpAndSettle();
+    await tester.pump();
+
+    expect(find.text('Unlocked 3/30'), findsOneWidget);
+    expect(find.text('Stars 4/90'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('reset-progress-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Reset progress?'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('reset-confirm-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Unlocked 1/30'), findsOneWidget);
+    expect(find.text('Stars 0/90'), findsOneWidget);
+
+    final progress = await repository.load();
+    expect(progress.highestUnlockedLevel, 1);
+    expect(progress.bestStarsByLevel, isEmpty);
+    expect(progress.tutorialCompleted, isFalse);
   });
 
   testWidgets('pause dialog can resume the level', (tester) async {
@@ -264,8 +331,8 @@ void main() {
     await tester.pump(const Duration(seconds: 4));
     await tester.pump();
 
-    expect(find.byKey(const ValueKey('tutorial-recall-prompt')),
-        findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('tutorial-recall-prompt')), findsOneWidget);
     expect(find.byKey(const ValueKey('tutorial-hand-pointer')), findsOneWidget);
 
     final targets = generateTargets(level: 1, gridSize: 3, objectCount: 3);
