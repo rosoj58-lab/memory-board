@@ -121,7 +121,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with RouteAware {
               ),
               Center(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 72, 24, 32),
+                  padding: const EdgeInsets.fromLTRB(24, 56, 24, 24),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 420),
                     child: Column(
@@ -129,9 +129,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> with RouteAware {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const Center(
-                          child: AmbientSparkMark(size: 92),
+                          child: AmbientSparkMark(size: 78),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 14),
                         Text(
                           'Memory Board',
                           textAlign: TextAlign.center,
@@ -142,7 +142,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with RouteAware {
                                 fontWeight: FontWeight.w800,
                               ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                         Text(
                           'Train visual memory one board at a time.',
                           textAlign: TextAlign.center,
@@ -151,7 +151,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with RouteAware {
                                     color: AppColors.textSoft,
                                   ),
                         ),
-                        const SizedBox(height: 22),
+                        const SizedBox(height: 14),
                         FutureBuilder<PlayerProgress>(
                           future: _progressFuture,
                           builder: (context, snapshot) {
@@ -166,7 +166,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with RouteAware {
                             );
                           },
                         ),
-                        const SizedBox(height: 26),
+                        const SizedBox(height: 16),
                         FutureBuilder<PlayerProgress>(
                           future: _progressFuture,
                           builder: (context, snapshot) {
@@ -225,6 +225,13 @@ class _MenuProgressSummary extends StatelessWidget {
     final completedLevels =
         loadedProgress == null ? 0 : loadedProgress.completedLevelCount;
     final unlocked = loadedProgress?.highestUnlockedLevel ?? 1;
+    final rooms = buildRoomConfigs();
+    final currentRoom = _roomForLevel(unlocked, rooms);
+    final nextLockedRoom = _nextLockedPlayableRoom(totalStars, rooms);
+    final progressTarget = nextLockedRoom?.unlockStars ?? maxImplementedStars;
+    final progressLabel = nextLockedRoom == null
+        ? 'All current rooms unlocked'
+        : '${nextLockedRoom.name} unlock $totalStars/${nextLockedRoom.unlockStars} stars';
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -236,12 +243,46 @@ class _MenuProgressSummary extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
+            Row(
+              key: const ValueKey('menu-current-room'),
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  _roomIcon(currentRoom.mode),
+                  color: AppColors.gold,
+                  size: 18,
+                ),
+                const SizedBox(width: 7),
+                Flexible(
+                  child: Text(
+                    'Room ${currentRoom.id} · ${currentRoom.name}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             LinearProgressIndicator(
-              value: totalStars / maxImplementedStars,
+              value: (totalStars / progressTarget).clamp(0.0, 1.0),
               minHeight: 6,
               borderRadius: BorderRadius.circular(999),
               backgroundColor: Colors.white12,
               color: AppColors.gold,
+            ),
+            const SizedBox(height: 7),
+            Text(
+              progressLabel,
+              key: const ValueKey('menu-room-unlock-progress'),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: AppColors.textSoft,
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
             const SizedBox(height: 10),
             Wrap(
@@ -268,6 +309,35 @@ class _MenuProgressSummary extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+RoomConfig _roomForLevel(int level, List<RoomConfig> rooms) {
+  for (final room in rooms) {
+    if (room.containsLevel(level)) {
+      return room;
+    }
+  }
+  return rooms.first;
+}
+
+RoomConfig? _nextLockedPlayableRoom(int totalStars, List<RoomConfig> rooms) {
+  for (final room in rooms) {
+    if (room.available && totalStars < room.unlockStars) {
+      return room;
+    }
+  }
+  return null;
+}
+
+IconData _roomIcon(LevelMode mode) {
+  switch (mode) {
+    case LevelMode.hiddenSet:
+      return Icons.grid_view_rounded;
+    case LevelMode.sequenceTrail:
+      return Icons.route_rounded;
+    case LevelMode.objectFilter:
+      return Icons.filter_alt_rounded;
   }
 }
 

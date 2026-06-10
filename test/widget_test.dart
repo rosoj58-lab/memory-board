@@ -57,6 +57,9 @@ void main() {
     expect(find.text('Start Level 1'), findsOneWidget);
     expect(find.text('Levels'), findsOneWidget);
     expect(find.byKey(const ValueKey('menu-progress-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('menu-current-room')), findsOneWidget);
+    expect(find.text('Room 1 · Magic Glade'), findsOneWidget);
+    expect(find.text('Spark Trail unlock 0/80 stars'), findsOneWidget);
     expect(find.text('Goal 0/180'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('menu-levels-button')));
@@ -106,6 +109,19 @@ void main() {
 
     expect(find.text('Level 4'), findsOneWidget);
     expect(find.text('Remember the glowing tiles'), findsOneWidget);
+  });
+
+  testWidgets('main menu shows room two after it unlocks', (tester) async {
+    await tester.pumpWidget(
+      testApp(progressRepository: repositoryWithUnlockedLevels(31)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Continue Level 31'), findsOneWidget);
+    expect(find.text('Room 2 · Spark Trail'), findsOneWidget);
+    expect(find.text('All current rooms unlocked'), findsOneWidget);
+    expect(find.text('Stars 80/180'), findsOneWidget);
+    expect(find.text('Unlocked 31/60'), findsOneWidget);
   });
 
   testWidgets('next challenge start opens the newest unlocked level',
@@ -383,6 +399,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Memory Board'), findsOneWidget);
+    expect(find.text('Spark Trail unlock 3/80 stars'), findsOneWidget);
     expect(find.text('Stars 3/180'), findsOneWidget);
     expect(find.text('Unlocked 2/60'), findsOneWidget);
     expect(find.text('Completed 1/60'), findsOneWidget);

@@ -134,6 +134,8 @@ Avoid adding a vibration plugin until we need custom vibration patterns.
   - `Continue` for a returning player
 - Secondary action opens Levels.
 - Main progress should feel like journey progress, not only statistics:
+  - current room name
+  - next room unlock progress when a playable room is still locked
   - stars earned
   - completed levels
   - unlocked/current level
