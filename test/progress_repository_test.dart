@@ -43,6 +43,38 @@ void main() {
     expect(progress.completedInRange(31, 60), 0);
   });
 
+  test('room two stays locked until eighty stars', () async {
+    final repository = InMemoryProgressRepository();
+
+    PlayerProgress progress = await repository.load();
+    for (var level = 1; level <= 30; level += 1) {
+      progress = await repository.completeLevel(level: level, stars: 1);
+    }
+
+    expect(progress.totalStars, 30);
+    expect(progress.highestUnlockedLevel, 30);
+    expect(progress.isLevelUnlocked(31), isFalse);
+  });
+
+  test('room two unlocks after improving room one to eighty stars', () async {
+    final repository = InMemoryProgressRepository();
+
+    for (var level = 1; level <= 30; level += 1) {
+      await repository.completeLevel(level: level, stars: 1);
+    }
+    PlayerProgress progress = await repository.load();
+    expect(progress.highestUnlockedLevel, 30);
+
+    for (var level = 1; level <= 25; level += 1) {
+      progress = await repository.completeLevel(level: level, stars: 3);
+    }
+    progress = await repository.completeLevel(level: 26, stars: 2);
+
+    expect(progress.totalStars, 81);
+    expect(progress.highestUnlockedLevel, 31);
+    expect(progress.isLevelUnlocked(31), isTrue);
+  });
+
   test('tutorial completed flag can be saved', () async {
     final repository = InMemoryProgressRepository();
 

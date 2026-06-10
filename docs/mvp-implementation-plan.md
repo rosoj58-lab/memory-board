@@ -4,13 +4,15 @@ This is the working implementation plan for the first Android MVP. It defines wh
 
 ## Product Decision
 
-The MVP is a 30-level portrait mobile game with one core mechanic:
+The MVP is a 60-level portrait mobile game with two memory mechanics:
 
 Memorize glowing sparks on a board, wait until they hide, then tap the correct hidden cells.
 
+In Room 2, sparks appear as an ordered trail and the player repeats that trail in the same order.
+
 The visual direction is **Magic Sparks**: bright friendly night, dark teal surfaces, mint controls, yellow spark/reward accents, soft glow, readable rounded tiles, and no copied ghost/reference characters.
 
-The first release should not include endless mode, playable order memory, playable multiple object types, shop, ads, music, leaderboards, cloud saves, or complex asset packs. Those can come later after the basic game loop and navigation feel good on a real phone.
+The first release should not include endless mode, playable multiple object types, shop, ads, music, leaderboards, cloud saves, or complex asset packs. Those can come later after the basic game loop and navigation feel good on a real phone.
 
 ## Current MVP Scope
 
@@ -23,7 +25,7 @@ The first release should not include endless mode, playable order memory, playab
 - Pause dialog
 - Win dialog
 - Lose dialog
-- Final completion dialog after level 30
+- Final completion dialog after level 60
 
 ### Navigation Flow
 
@@ -45,19 +47,24 @@ The first release should not include endless mode, playable order memory, playab
 
 ### Core Gameplay
 
-- Room 1 with 30 configured playable levels
+- Room 1 with 30 configured playable hidden-set levels
+- Room 2 with 30 configured playable sequence-trail levels
 - One board per level
 - Levels 1-3: 3x3 board, 3-4 sparks
 - Levels 4-10: 4x4 board, 4-6 sparks
 - Levels 11-22: 5x5 board, 6-10 sparks
 - Levels 23-30: 6x6 board, 8-10 sparks
 - Fixed 4s memorize time in Room 1
+- Room 2 levels 31-60: ordered trail memory
+- Room 2 starts at 3x3 with 3-4 steps and grows to 5x5 with 8 steps
+- Fixed 4s trail show time in Room 2
 - Memorization phase with visible sparks
 - Recall phase with hidden board
 - Correct tap reveals a spark and increments found count
 - Wrong tap marks the cell, removes one heart, triggers vibration
 - 3 wrong taps fail the level
 - Completing all targets wins the level
+- In Room 2, tapping the right cells in the wrong order counts as a mistake
 - Star result:
   - 3 stars for 0 mistakes
   - 2 stars for 1 mistake
@@ -68,22 +75,25 @@ The first release should not include endless mode, playable order memory, playab
 The code now has explicit room and mode configuration:
 
 - `LevelMode.hiddenSet`: implemented Room 1 mode.
-- `LevelMode.sequenceTrail`: reserved for Room 2.
+- `LevelMode.sequenceTrail`: implemented Room 2 mode.
 - `LevelMode.objectFilter`: reserved for Room 3.
 
-Room 1 is the only playable MVP room:
+Room 1 is the first playable MVP room:
 
 - Room name: `Magic Glade`
 - Levels: 1-30
 - Max stars: 90
 - Unlock: available from the start
 
-Reserved future rooms:
+Room 2 is the second playable MVP room:
 
 - Room 2: `Spark Trail`, levels 31-60, unlock target 80 stars, sequence/path memory.
+
+Reserved future room:
+
 - Room 3: `Moon Garden`, levels 61-90, unlock target 170 stars, object-filter memory.
 
-Future rooms can be visible as locked cards in the level selection UI, but they should not start gameplay until their mechanics are implemented and tested.
+Room 3 can be visible as a locked card in the level selection UI, but it should not start gameplay until its mechanic is implemented and tested.
 
 ### Progress
 
@@ -132,8 +142,9 @@ Avoid adding a vibration plugin until we need custom vibration patterns.
 
 The screen starts with compact room cards:
 
-- Current playable room: Room 1, progress shown as completed levels and stars.
-- Locked planned rooms: Room 2 and Room 3, with unlock target copy.
+- Playable rooms: Room 1 and Room 2, progress shown as completed levels and stars.
+- Room 2 remains locked until the player has 80 total stars.
+- Locked planned room: Room 3, with unlock target copy.
 
 Level tiles must have distinct states:
 
@@ -155,7 +166,9 @@ Progress and room cards should stay compact enough that level tiles are visible 
 
 - Use `Remember/Memorize` wording, not `Watch`.
 - Room 1 should keep integer timing only: `4s remember`.
+- Room 2 should keep integer timing only: `4s trail`.
 - Found counter should be clear, for example `2/4 found`.
+- Sequence counter should be clear, for example `2/5 in order`.
 - Correct and wrong states must not rely only on color:
   - correct: spark reveal + glow
   - wrong: red state + X + shake
@@ -348,15 +361,27 @@ Status: implemented and still balancing.
 
 ### Milestone 3.5: Room Foundation
 
-Status: implemented as non-playable structure.
+Status: implemented.
 
 - `RoomConfig` added
 - `LevelMode` added
 - Room 1 maps to the current 30 hidden-set levels
-- Room 2 is reserved for sequence trail gameplay
+- Room 2 maps to 30 playable sequence-trail levels
 - Room 3 is reserved for object-filter gameplay
 - Level selection shows compact room cards
 - Progress exposes total stars and room-range stats
+- Room 2 unlocks from 80 total stars
+
+### Milestone 3.6: Spark Trail Room
+
+Status: implemented and still balancing.
+
+- Levels 31-60 added
+- Sparks reveal as an ordered trail during the 4s show phase
+- Player must repeat the trail in order
+- Early taps on future trail cells count as mistakes
+- Correct trail taps reveal numbered spark order
+- Tests cover deterministic trail generation and order-sensitive gameplay
 
 ### Milestone 4: UI/UX Foundation Pass
 
@@ -440,6 +465,7 @@ Exit criteria:
   - Level progression table
   - Star calculation
   - Target generation count and uniqueness
+  - Target sequence count, uniqueness, and deterministic order
   - Progress persistence/reset
 
 - Widget tests:
@@ -447,6 +473,7 @@ Exit criteria:
   - Settings persists vibration toggle and can reset progress
   - Level starts in memorization phase
   - Correct tap updates progress
+  - Sequence levels require taps in order
   - Wrong tap removes heart
   - Win dialog appears and navigates correctly
   - Lose dialog appears and navigates correctly
@@ -455,8 +482,10 @@ Exit criteria:
 ### Manual
 
 - Install APK on Android phone
-- Play levels 1, 2, 7, 10, 14, 23, and 30
+- Play Room 1 levels 1, 2, 7, 10, 14, 23, and 30
+- Play Room 2 levels 31, 34, 45, 53, and 60
 - Check board fit on 3x3, 4x4, 5x5, and 6x6
+- Check sequence replay feels fair at 3-8 steps
 - Check one-handed tap comfort
 - Check haptic feedback is not annoying
 - Check dialogs and navigation
@@ -485,12 +514,12 @@ Android phone testing still remains required because haptics, APK install, and t
 - Current/next level tile state
 - Result popup action hierarchy
 - Replace plus-like spark with stronger Magic Spark
-- Rename Watch to Remember/Memorize
+- Keep Remember/Memorize wording consistent
 
 ### P1
 
 - Stronger progress presentation
-- Room unlock flow when Room 2 becomes playable
+- Room 2 difficulty balancing after phone testing
 - Sequential star reveal
 - Win particles
 - Stronger popup dim
@@ -509,7 +538,6 @@ Android phone testing still remains required because haptics, APK install, and t
 - Sound effects
 - Endless trainer mode
 - Score mode
-- Playable Room 2 sequence memory
 - Playable Room 3 color/type filtering
 - Multiple boards inside one level
 - Hint economy

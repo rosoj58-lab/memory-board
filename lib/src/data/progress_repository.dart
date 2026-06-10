@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -131,11 +132,11 @@ class PreferencesProgressRepository implements ProgressRepository {
     }
 
     final nextProgress = progress.copyWith(
-      highestUnlockedLevel: level < maxImplementedLevel
-          ? progress.highestUnlockedLevel
-              .clamp(level + 1, maxImplementedLevel)
-              .toInt()
-          : progress.highestUnlockedLevel,
+      highestUnlockedLevel: _nextHighestUnlockedLevel(
+        currentHighest: progress.highestUnlockedLevel,
+        completedLevel: level,
+        bestStarsByLevel: nextStarsByLevel,
+      ),
       bestStarsByLevel: Map.unmodifiable(nextStarsByLevel),
     );
     await _save(nextProgress);
@@ -197,11 +198,11 @@ class InMemoryProgressRepository implements ProgressRepository {
     }
 
     _progress = _progress.copyWith(
-      highestUnlockedLevel: level < maxImplementedLevel
-          ? _progress.highestUnlockedLevel
-              .clamp(level + 1, maxImplementedLevel)
-              .toInt()
-          : _progress.highestUnlockedLevel,
+      highestUnlockedLevel: _nextHighestUnlockedLevel(
+        currentHighest: _progress.highestUnlockedLevel,
+        completedLevel: level,
+        bestStarsByLevel: nextStarsByLevel,
+      ),
       bestStarsByLevel: Map.unmodifiable(nextStarsByLevel),
     );
     return _progress;
@@ -218,4 +219,38 @@ class InMemoryProgressRepository implements ProgressRepository {
     _progress = PlayerProgress.initial();
     return _progress;
   }
+}
+
+int _nextHighestUnlockedLevel({
+  required int currentHighest,
+  required int completedLevel,
+  required Map<int, int> bestStarsByLevel,
+}) {
+  final totalStars = bestStarsByLevel.values.fold<int>(
+    0,
+    (sum, stars) => sum + stars,
+  );
+  final rooms = buildRoomConfigs();
+  var nextHighest = currentHighest;
+
+  if (completedLevel < maxImplementedLevel) {
+    nextHighest = math.max(nextHighest, completedLevel + 1);
+  }
+
+  for (final room in rooms) {
+    if (!room.available || totalStars < room.unlockStars) {
+      continue;
+    }
+    nextHighest = math.max(nextHighest, room.levelStart);
+  }
+
+  for (final room in rooms) {
+    if (room.containsLevel(nextHighest)) {
+      if (!room.available || totalStars < room.unlockStars) {
+        return math.max(currentHighest, math.max(room.levelStart - 1, 1));
+      }
+    }
+  }
+
+  return nextHighest.clamp(1, maxImplementedLevel).toInt();
 }

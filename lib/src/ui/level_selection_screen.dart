@@ -285,7 +285,8 @@ class _RoomOverview extends StatelessWidget {
             room.levelStart,
             room.levelEnd,
           );
-          final unlocked = room.available && roomStars >= room.unlockStars;
+          final unlocked =
+              room.available && progress.totalStars >= room.unlockStars;
           final current = room.containsLevel(progress.highestUnlockedLevel);
           return _RoomCard(
             room: room,

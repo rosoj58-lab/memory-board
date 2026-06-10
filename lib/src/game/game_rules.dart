@@ -5,6 +5,18 @@ Set<int> generateTargets({
   required int gridSize,
   required int objectCount,
 }) {
+  return generateTargetSequence(
+    level: level,
+    gridSize: gridSize,
+    objectCount: objectCount,
+  ).toSet();
+}
+
+List<int> generateTargetSequence({
+  required int level,
+  required int gridSize,
+  required int objectCount,
+}) {
   final cellCount = gridSize * gridSize;
   if (objectCount > cellCount) {
     throw ArgumentError.value(
@@ -17,7 +29,7 @@ Set<int> generateTargets({
   final random = Random(level);
   final shuffled = List<int>.generate(cellCount, (index) => index)
     ..shuffle(random);
-  return shuffled.take(objectCount).toSet();
+  return shuffled.take(objectCount).toList(growable: false);
 }
 
 int starsForMistakes(int mistakes) {
@@ -29,4 +41,3 @@ int starsForMistakes(int mistakes) {
   }
   return 1;
 }
-

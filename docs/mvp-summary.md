@@ -25,8 +25,9 @@ The design direction is **Magic Sparks**: friendly dark teal night, mint UI acce
 - Win popup
 - Lose popup
 - Final completion popup
-- Room 1 with 30 playable levels
-- Locked future room cards for planned level packs
+- Room 1 with 30 playable hidden-set levels
+- Room 2 with 30 playable sequence-trail levels
+- Locked future room card for the planned object-filter pack
 - 3x3, 4x4, 5x5, and late 6x6 boards
 - 3 hearts per level
 - 1-3 star rating
@@ -52,7 +53,7 @@ Splash screen and app icon are included in the MVP direction, but they should be
 9. Wrong taps mark cells with color and icon feedback, remove hearts, and trigger haptics.
 10. Finding all sparks wins the level.
 11. Losing all hearts fails the level.
-12. Winning unlocks the next level.
+12. Winning unlocks the next level when the current room gate allows it.
 
 ## Difficulty
 
@@ -66,12 +67,26 @@ Splash screen and app icon are included in the MVP direction, but they should be
 - Levels 23-30: 6x6 board, 8-10 sparks
 - Memorize time is fixed at 4s in Room 1
 
-### Reserved Future Rooms
+### Room 2: Spark Trail
 
-- Room 2: Spark Trail, planned sequence memory. Sparks appear one by one like a path; the player repeats the path in order.
+- Mode: sequence-trail memory
+- Unlock: 80 total stars
+- Goal: memorize sparks as an ordered path, then repeat the path in the same order
+- Levels 31-33: 3x3 board, 3-step trail
+- Levels 34-36: 3x3 board, 4-step trail
+- Levels 37-40: 4x4 board, 4-step trail
+- Levels 41-44: 4x4 board, 5-step trail
+- Levels 45-48: 4x4 board, 6-step trail
+- Levels 49-52: 5x5 board, 6-step trail
+- Levels 53-56: 5x5 board, 7-step trail
+- Levels 57-60: 5x5 board, 8-step trail
+- Trail show time is fixed at 4s in Room 2
+
+### Reserved Future Room
+
 - Room 3: Moon Garden, planned object-filter memory. The player chooses only the requested object type.
 
-Future rooms are visible as locked direction in the level selection UI, but only Room 1 is playable in the MVP.
+Room 3 is visible as locked direction in the level selection UI, but only Rooms 1 and 2 are playable now.
 
 ## Stars
 
@@ -93,4 +108,4 @@ Future rooms are visible as locked direction in the level selection UI, but only
 
 ## Future Ideas
 
-Future versions can add playable Room 2 sequence memory, playable Room 3 object filtering, endless trainer mode, object skins, hints, sound effects, achievements, daily challenges, and monetization only after the core game feels good.
+Future versions can add playable Room 3 object filtering, endless trainer mode, object skins, hints, sound effects, achievements, daily challenges, and monetization only after the core game feels good.

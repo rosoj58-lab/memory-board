@@ -31,16 +31,19 @@ class GameplayScreen extends StatefulWidget {
 class _GameplayScreenState extends State<GameplayScreen> {
   static const int maxHearts = 3;
 
+  late List<int> _targetSequence;
   late Set<int> _targets;
   final Set<int> _correct = <int>{};
   final Set<int> _wrong = <int>{};
   GamePhase _phase = GamePhase.memorize;
   Timer? _timer;
+  Timer? _sequenceRevealTimer;
   Timer? _tutorialRecallPromptTimer;
   DateTime? _memorizeStartedAt;
   Duration _remainingMemorizeTime = Duration.zero;
   Duration _activeMemorizeDuration = Duration.zero;
   int _mistakes = 0;
+  int _visibleSequenceCount = 0;
   bool _tutorialEnabled = false;
   bool _tutorialIntroVisible = false;
   bool _tutorialRecallPromptVisible = false;
@@ -57,22 +60,27 @@ class _GameplayScreenState extends State<GameplayScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _sequenceRevealTimer?.cancel();
     _tutorialRecallPromptTimer?.cancel();
     super.dispose();
   }
 
   void _startLevel() {
+    _sequenceRevealTimer?.cancel();
     _tutorialRecallPromptTimer?.cancel();
     setState(() {
-      _targets = generateTargets(
+      _targetSequence = generateTargetSequence(
         level: widget.config.level,
         gridSize: widget.config.gridSize,
         objectCount: widget.config.objectCount,
       );
+      _targets = _targetSequence.toSet();
       _correct.clear();
       _wrong.clear();
       _phase = GamePhase.memorize;
       _mistakes = 0;
+      _visibleSequenceCount =
+          widget.config.mode == LevelMode.sequenceTrail ? 1 : _targets.length;
       _remainingMemorizeTime = widget.config.showTime;
       _tutorialRecallPromptVisible = false;
     });
@@ -124,10 +132,13 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
   void _scheduleMemorizeTimer(Duration duration) {
     _timer?.cancel();
+    _sequenceRevealTimer?.cancel();
     _memorizeStartedAt = DateTime.now();
     _activeMemorizeDuration = duration;
+    _scheduleSequenceRevealTimer(duration);
     _timer = Timer(duration, () {
       if (mounted) {
+        _sequenceRevealTimer?.cancel();
         setState(() {
           _phase = GamePhase.recall;
           _tutorialRecallPromptVisible = false;
@@ -172,12 +183,50 @@ class _GameplayScreenState extends State<GameplayScreen> {
       _remainingMemorizeTime = Duration.zero;
     }
     _timer?.cancel();
+    _sequenceRevealTimer?.cancel();
   }
 
   void _resumeMemorizeTimer() {
     if (_phase == GamePhase.memorize) {
       _scheduleMemorizeTimer(_remainingMemorizeTime);
     }
+  }
+
+  void _scheduleSequenceRevealTimer(Duration duration) {
+    if (widget.config.mode != LevelMode.sequenceTrail ||
+        duration <= Duration.zero) {
+      return;
+    }
+
+    final startVisible = _visibleSequenceCount.clamp(
+      1,
+      widget.config.objectCount,
+    );
+    final remainingCount = widget.config.objectCount - startVisible;
+    if (remainingCount <= 0) {
+      return;
+    }
+
+    _sequenceRevealTimer = Timer.periodic(
+      const Duration(milliseconds: 80),
+      (timer) {
+        if (!mounted || _phase != GamePhase.memorize) {
+          timer.cancel();
+          return;
+        }
+
+        final elapsed = DateTime.now().difference(_memorizeStartedAt!);
+        final progress =
+            (elapsed.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0);
+        final visible = (startVisible + (remainingCount * progress).ceil())
+            .clamp(1, widget.config.objectCount)
+            .toInt();
+
+        if (visible != _visibleSequenceCount) {
+          setState(() => _visibleSequenceCount = visible);
+        }
+      },
+    );
   }
 
   Future<void> _showPauseDialog() async {
@@ -229,17 +278,24 @@ class _GameplayScreenState extends State<GameplayScreen> {
   }
 
   Future<void> _handleCellTap(int index) async {
+    final isSequence = widget.config.mode == LevelMode.sequenceTrail;
     if (_phase != GamePhase.recall ||
         _correct.contains(index) ||
-        _wrong.contains(index)) {
+        (_wrong.contains(index) &&
+            (!isSequence || !_targets.contains(index)))) {
       return;
     }
 
     _hideTutorialRecallPrompt();
 
-    if (_targets.contains(index)) {
+    final correctTap = isSequence
+        ? index == _targetSequence[_correct.length]
+        : _targets.contains(index);
+
+    if (correctTap) {
       _selectionClick();
       setState(() {
+        _wrong.remove(index);
         _correct.add(index);
         if (_correct.length == _targets.length) {
           _phase = GamePhase.won;
@@ -251,11 +307,11 @@ class _GameplayScreenState extends State<GameplayScreen> {
           await widget.progressRepository.markTutorialCompleted();
           _tutorialEnabled = false;
         }
-        await widget.progressRepository.completeLevel(
+        final progress = await widget.progressRepository.completeLevel(
           level: widget.config.level,
           stars: starsForMistakes(_mistakes),
         );
-        await _showWinDialog();
+        await _showWinDialog(progress);
       } else {
         _scheduleTutorialRecallPrompt();
       }
@@ -278,13 +334,15 @@ class _GameplayScreenState extends State<GameplayScreen> {
     }
   }
 
-  Future<void> _showWinDialog() async {
+  Future<void> _showWinDialog(PlayerProgress progress) async {
     await Future<void>.delayed(const Duration(milliseconds: 350));
     if (!mounted) {
       return;
     }
 
-    final isFinalLevel = widget.config.level == 30;
+    final isFinalLevel = widget.config.level == maxImplementedLevel;
+    final nextLevel = widget.config.level + 1;
+    final canOpenNext = !isFinalLevel && progress.isLevelUnlocked(nextLevel);
     final stars = starsForMistakes(_mistakes);
     await showDialog<void>(
       context: context,
@@ -309,14 +367,14 @@ class _GameplayScreenState extends State<GameplayScreen> {
               Navigator.of(context).pop();
               _startLevel();
             },
-            onNext: isFinalLevel
+            onNext: !canOpenNext
                 ? null
                 : () {
                     Navigator.of(context).pop();
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute<void>(
                         builder: (_) => GameplayScreen(
-                          config: buildLevelConfigs()[widget.config.level],
+                          config: buildLevelConfigs()[nextLevel - 1],
                           progressRepository: widget.progressRepository,
                           settingsRepository: widget.settingsRepository,
                         ),
@@ -372,11 +430,18 @@ class _GameplayScreenState extends State<GameplayScreen> {
   Widget build(BuildContext context) {
     final config = widget.config;
     final instruction = switch (_phase) {
-      GamePhase.memorize => 'Remember the glowing tiles',
-      GamePhase.recall => 'Find the hidden sparks',
+      GamePhase.memorize => config.mode == LevelMode.sequenceTrail
+          ? 'Memorize the spark trail'
+          : 'Remember the glowing tiles',
+      GamePhase.recall => config.mode == LevelMode.sequenceTrail
+          ? 'Repeat the trail in order'
+          : 'Find the hidden sparks',
       GamePhase.won => 'Completed',
       GamePhase.lost => 'Failed',
     };
+    final foundLabel = config.mode == LevelMode.sequenceTrail
+        ? '${_correct.length}/${config.objectCount} in order'
+        : '${_correct.length}/${config.objectCount} found';
 
     return Scaffold(
       appBar: AppBar(
@@ -408,7 +473,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '${_correct.length}/${config.objectCount} found',
+                          foundLabel,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         Row(
@@ -445,8 +510,11 @@ class _GameplayScreenState extends State<GameplayScreen> {
                             child: _Board(
                               gridSize: config.gridSize,
                               targets: _targets,
+                              targetSequence: _targetSequence,
+                              visibleSequenceCount: _visibleSequenceCount,
                               correct: _correct,
                               wrong: _wrong,
+                              mode: config.mode,
                               phase: _phase,
                               onTap: _handleCellTap,
                             ),
@@ -485,6 +553,12 @@ class _LevelInfoStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final objectLabel = config.objectCount == 1 ? 'spark' : 'sparks';
+    final targetLabel = config.mode == LevelMode.sequenceTrail
+        ? '${config.objectCount}-step trail'
+        : '${config.objectCount} $objectLabel';
+    final timeLabel = config.mode == LevelMode.sequenceTrail
+        ? '${_formatSeconds(config.showTime)} trail'
+        : '${_formatSeconds(config.showTime)} remember';
     return DecoratedBox(
       decoration: BoxDecoration(
         color: const Color(0xBB102B34),
@@ -506,11 +580,11 @@ class _LevelInfoStrip extends StatelessWidget {
             ),
             _LevelInfoChip(
               icon: Icons.auto_awesome_rounded,
-              label: '${config.objectCount} $objectLabel',
+              label: targetLabel,
             ),
             _LevelInfoChip(
               icon: Icons.timer_rounded,
-              label: '${_formatSeconds(config.showTime)} remember',
+              label: timeLabel,
             ),
           ],
         ),
@@ -894,16 +968,22 @@ class _Board extends StatelessWidget {
   const _Board({
     required this.gridSize,
     required this.targets,
+    required this.targetSequence,
+    required this.visibleSequenceCount,
     required this.correct,
     required this.wrong,
+    required this.mode,
     required this.phase,
     required this.onTap,
   });
 
   final int gridSize;
   final Set<int> targets;
+  final List<int> targetSequence;
+  final int visibleSequenceCount;
   final Set<int> correct;
   final Set<int> wrong;
+  final LevelMode mode;
   final GamePhase phase;
   final Future<void> Function(int index) onTap;
 
@@ -922,18 +1002,31 @@ class _Board extends StatelessWidget {
         final isTarget = targets.contains(index);
         final isCorrect = correct.contains(index);
         final isWrong = wrong.contains(index);
-        final isVisible = phase == GamePhase.memorize || isCorrect;
+        final sequenceIndex = targetSequence.indexOf(index);
+        final visibleSequenceTargets = mode == LevelMode.sequenceTrail
+            ? targetSequence.take(visibleSequenceCount).toSet()
+            : targets;
+        final isVisible = phase == GamePhase.memorize
+            ? visibleSequenceTargets.contains(index)
+            : isCorrect;
 
         Color color = const Color(0xFF173A45);
         bool showSpark = false;
         IconData? statusIcon;
+        String? badgeText;
         if (isVisible && isTarget) {
           color = AppColors.surfaceAlt;
           showSpark = true;
+          if (mode == LevelMode.sequenceTrail && sequenceIndex >= 0) {
+            badgeText = '${sequenceIndex + 1}';
+          }
         }
         if (isCorrect) {
           color = const Color(0xFF127865);
           showSpark = true;
+          if (mode == LevelMode.sequenceTrail && sequenceIndex >= 0) {
+            badgeText = '${sequenceIndex + 1}';
+          }
         }
         if (isWrong) {
           color = const Color(0xFF812D3E);
@@ -946,6 +1039,7 @@ class _Board extends StatelessWidget {
           glowing: isVisible && isTarget,
           showSpark: showSpark,
           statusIcon: statusIcon,
+          badgeText: badgeText,
           isCorrect: isCorrect,
           isWrong: isWrong,
           onTap: () => onTap(index),
@@ -964,6 +1058,7 @@ class _BoardCell extends StatefulWidget {
     required this.isCorrect,
     required this.isWrong,
     required this.onTap,
+    this.badgeText,
     this.statusIcon,
   });
 
@@ -973,6 +1068,7 @@ class _BoardCell extends StatefulWidget {
   final bool showSpark;
   final bool isCorrect;
   final bool isWrong;
+  final String? badgeText;
   final IconData? statusIcon;
   final VoidCallback onTap;
 
@@ -1058,10 +1154,45 @@ class _BoardCellState extends State<_BoardCell>
               );
             },
             child: widget.showSpark
-                ? SparkMark(
+                ? Stack(
                     key: const ValueKey('cell-spark'),
-                    size: 34,
-                    glowing: widget.isCorrect,
+                    alignment: Alignment.center,
+                    children: [
+                      SparkMark(
+                        size: 34,
+                        glowing: widget.isCorrect,
+                      ),
+                      if (widget.badgeText != null)
+                        Positioned(
+                          right: 8,
+                          bottom: 8,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: const Color(0xDD061F22),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: const Color(0xAAFFD86B),
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 1,
+                              ),
+                              child: Text(
+                                widget.badgeText!,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: AppColors.gold,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   )
                 : widget.statusIcon == null
                     ? const SizedBox.shrink(key: ValueKey('cell-empty'))

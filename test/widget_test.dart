@@ -28,11 +28,19 @@ void main() {
     );
   }
 
+  Map<int, int> roomTwoUnlockStars() {
+    return <int, int>{
+      for (var level = 1; level <= 26; level += 1) level: 3,
+      27: 2,
+    };
+  }
+
   InMemoryProgressRepository repositoryWithUnlockedLevels(int level) {
     return InMemoryProgressRepository(
       PlayerProgress(
         highestUnlockedLevel: level,
-        bestStarsByLevel: const <int, int>{},
+        bestStarsByLevel:
+            level >= 31 ? roomTwoUnlockStars() : const <int, int>{},
         tutorialCompleted: true,
       ),
     );
@@ -49,7 +57,7 @@ void main() {
     expect(find.text('Start Level 1'), findsOneWidget);
     expect(find.text('Levels'), findsOneWidget);
     expect(find.byKey(const ValueKey('menu-progress-summary')), findsOneWidget);
-    expect(find.text('Goal 0/90'), findsOneWidget);
+    expect(find.text('Goal 0/180'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('menu-levels-button')));
     await tester.pumpAndSettle();
@@ -347,9 +355,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Memory Board'), findsOneWidget);
-    expect(find.text('Stars 3/90'), findsOneWidget);
-    expect(find.text('Unlocked 2/30'), findsOneWidget);
-    expect(find.text('Completed 1/30'), findsOneWidget);
+    expect(find.text('Stars 3/180'), findsOneWidget);
+    expect(find.text('Unlocked 2/60'), findsOneWidget);
+    expect(find.text('Completed 1/60'), findsOneWidget);
   });
 
   testWidgets('returning to levels highlights the newly unlocked level',
@@ -417,9 +425,58 @@ void main() {
     expect(find.text('Failed'), findsOneWidget);
   });
 
-  testWidgets('level thirty completes the available MVP levels',
-      (tester) async {
-    final repository = repositoryWithUnlockedLevels(30);
+  testWidgets('sequence trail levels require taps in order', (tester) async {
+    final repository = repositoryWithUnlockedLevels(31);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameplayScreen(
+          config: buildLevelConfigs()[30],
+          progressRepository: repository,
+          settingsRepository: InMemorySettingsRepository(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Level 31'), findsOneWidget);
+    expect(find.text('Memorize the spark trail'), findsOneWidget);
+    expect(find.text('3-step trail'), findsOneWidget);
+    expect(find.text('4s trail'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump();
+
+    expect(find.text('Repeat the trail in order'), findsOneWidget);
+    expect(find.text('0/3 in order'), findsOneWidget);
+
+    final sequence = generateTargetSequence(
+      level: 31,
+      gridSize: 3,
+      objectCount: 3,
+    );
+
+    await tester.tap(find.byKey(ValueKey('board-cell-${sequence[1]}')));
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.text('0/3 in order'), findsOneWidget);
+
+    for (final target in sequence) {
+      await tester.tap(find.byKey(ValueKey('board-cell-$target')));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Level complete'), findsOneWidget);
+    final progress = await repository.load();
+    expect(progress.starsForLevel(31), 2);
+    expect(progress.isLevelUnlocked(32), isTrue);
+  });
+
+  testWidgets('level sixty completes the available MVP levels', (tester) async {
+    final repository = repositoryWithUnlockedLevels(60);
     await tester.pumpWidget(
       MaterialApp(
         home: GameplayScreen(
@@ -432,16 +489,20 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Level 30'), findsOneWidget);
+    expect(find.text('Level 60'), findsOneWidget);
     expect(find.byKey(const ValueKey('level-info-strip')), findsOneWidget);
-    expect(find.text('6x6'), findsOneWidget);
-    expect(find.text('10 sparks'), findsOneWidget);
-    expect(find.text('4s remember'), findsOneWidget);
+    expect(find.text('5x5'), findsOneWidget);
+    expect(find.text('8-step trail'), findsOneWidget);
+    expect(find.text('4s trail'), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 4));
     await tester.pump();
 
-    final targets = generateTargets(level: 30, gridSize: 6, objectCount: 10);
+    final targets = generateTargetSequence(
+      level: 60,
+      gridSize: 5,
+      objectCount: 8,
+    );
     for (final target in targets) {
       await tester.tap(find.byKey(ValueKey('board-cell-$target')));
       await tester.pump(const Duration(milliseconds: 50));
@@ -458,8 +519,8 @@ void main() {
     expect(find.byKey(const ValueKey('win-next-button')), findsNothing);
 
     final progress = await repository.load();
-    expect(progress.highestUnlockedLevel, 30);
-    expect(progress.starsForLevel(30), 3);
+    expect(progress.highestUnlockedLevel, 60);
+    expect(progress.starsForLevel(60), 3);
   });
 
   testWidgets('level one tutorial appears once and saves completion',
