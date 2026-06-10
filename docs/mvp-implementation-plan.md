@@ -152,6 +152,7 @@ The screen starts with compact room cards:
 - The Next challenge panel uses room-aware wording:
   - Room 1: `Find N sparks`, `Remember 4s`
   - Room 2: `Repeat N-step trail`, `Trail 4s`
+- When the next playable room is star-locked, Level Selection shows an `Improve stars` panel with replay shortcuts to completed levels that can still earn stars.
 
 Level tiles must have distinct states:
 

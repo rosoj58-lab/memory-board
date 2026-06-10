@@ -224,6 +224,39 @@ void main() {
     expect(find.text('Magic Glade'), findsOneWidget);
   });
 
+  testWidgets('level selection suggests replays for locked room stars',
+      (tester) async {
+    await tester.pumpWidget(
+      testApp(
+        progressRepository: repositoryWithProgress(
+          PlayerProgress(
+            highestUnlockedLevel: 30,
+            bestStarsByLevel: <int, int>{
+              for (var level = 1; level <= 29; level += 1) level: 1,
+              30: 3,
+            },
+            tutorialCompleted: true,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('menu-levels-button')));
+    await tester.pumpAndSettle();
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('star-improve-panel')), findsOneWidget);
+    expect(find.text('Improve stars'), findsOneWidget);
+    expect(find.text('48 stars needed for Spark Trail'), findsOneWidget);
+    expect(find.byKey(const ValueKey('star-improve-level-1')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('star-improve-level-1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Level 1'), findsOneWidget);
+    expect(find.text('Remember the glowing tiles'), findsOneWidget);
+  });
+
   testWidgets('level one shows tutorial instruction first', (tester) async {
     await tester.pumpWidget(
       testApp(progressRepository: repositoryWithCompletedTutorial()),

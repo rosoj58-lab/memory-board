@@ -65,6 +65,7 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
               if (progress == null) {
                 return const Center(child: CircularProgressIndicator());
               }
+              final lockedRoom = _lockedPlayableRoom(progress, rooms);
 
               return CustomScrollView(
                 controller: _scrollController,
@@ -84,6 +85,22 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                       ),
                     ),
                   ),
+                  if (lockedRoom != null)
+                    SliverToBoxAdapter(
+                      child: _StarImprovePanel(
+                        room: lockedRoom,
+                        missingStars:
+                            lockedRoom.unlockStars - progress.totalStars,
+                        candidates: _starImproveCandidates(
+                          levels: levels,
+                          progress: progress,
+                        ),
+                        onOpenLevel: (config) => _openLevel(
+                          config: config,
+                          progress: progress,
+                        ),
+                      ),
+                    ),
                   for (final room in rooms)
                     ..._buildRoomLevelSlivers(
                       room: room,
@@ -97,6 +114,44 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
         ),
       ),
     );
+  }
+
+  RoomConfig? _lockedPlayableRoom(
+    PlayerProgress progress,
+    List<RoomConfig> rooms,
+  ) {
+    for (final room in rooms) {
+      if (room.available &&
+          room.unlockStars > 0 &&
+          progress.totalStars < room.unlockStars) {
+        return room;
+      }
+    }
+    return null;
+  }
+
+  List<_StarImproveCandidate> _starImproveCandidates({
+    required List<LevelConfig> levels,
+    required PlayerProgress progress,
+  }) {
+    final candidates = <_StarImproveCandidate>[
+      for (final config in levels)
+        if (progress.isLevelUnlocked(config.level))
+          if (progress.starsForLevel(config.level) > 0 &&
+              progress.starsForLevel(config.level) < 3)
+            _StarImproveCandidate(
+              config: config,
+              stars: progress.starsForLevel(config.level),
+            ),
+    ];
+    candidates.sort((a, b) {
+      final upliftCompare = b.availableStars.compareTo(a.availableStars);
+      if (upliftCompare != 0) {
+        return upliftCompare;
+      }
+      return a.config.level.compareTo(b.config.level);
+    });
+    return candidates.take(4).toList(growable: false);
   }
 
   List<Widget> _buildRoomLevelSlivers({
@@ -418,6 +473,123 @@ String _modeCopy(LevelMode mode) {
       return 'Repeat the trail in order';
     case LevelMode.objectFilter:
       return 'Pick requested objects';
+  }
+}
+
+class _StarImproveCandidate {
+  const _StarImproveCandidate({
+    required this.config,
+    required this.stars,
+  });
+
+  final LevelConfig config;
+  final int stars;
+
+  int get availableStars => 3 - stars;
+}
+
+class _StarImprovePanel extends StatelessWidget {
+  const _StarImprovePanel({
+    required this.room,
+    required this.missingStars,
+    required this.candidates,
+    required this.onOpenLevel,
+  });
+
+  final RoomConfig room;
+  final int missingStars;
+  final List<_StarImproveCandidate> candidates;
+  final ValueChanged<LevelConfig> onOpenLevel;
+
+  @override
+  Widget build(BuildContext context) {
+    if (candidates.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+      child: DecoratedBox(
+        key: const ValueKey('star-improve-panel'),
+        decoration: BoxDecoration(
+          color: AppColors.surface.withAlpha(210),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0x33FFD86B)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.star_rounded,
+                    color: AppColors.gold,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Improve stars',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '$missingStars stars needed for ${room.name}',
+                key: const ValueKey('star-improve-needed'),
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: AppColors.textSoft,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final candidate in candidates)
+                    _StarImproveButton(
+                      candidate: candidate,
+                      onPressed: () => onOpenLevel(candidate.config),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StarImproveButton extends StatelessWidget {
+  const _StarImproveButton({
+    required this.candidate,
+    required this.onPressed,
+  });
+
+  final _StarImproveCandidate candidate;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      key: ValueKey('star-improve-level-${candidate.config.level}'),
+      onPressed: onPressed,
+      icon: const Icon(Icons.replay_rounded, size: 18),
+      label: Text('Level ${candidate.config.level} ${candidate.stars}/3'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.white,
+        side: const BorderSide(color: Color(0x55FFD86B)),
+        visualDensity: VisualDensity.compact,
+      ),
+    );
   }
 }
 
