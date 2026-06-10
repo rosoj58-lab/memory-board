@@ -40,6 +40,7 @@ The first release should not include endless mode, playable multiple object type
   - Action: open Level Selection
 - Result popup:
   - Win: `Next` primary, `Replay` secondary, `Levels/Menu` tertiary
+  - Win at a room boundary: announce the newly unlocked room before starting it
   - Win at a room gate: explain the missing stars and make `Levels` primary
   - Lose: `Replay` primary, `Levels/Menu` tertiary
 - Reset progress:
@@ -175,6 +176,7 @@ Progress and room cards should stay compact enough that level tiles are visible 
 - Use `Remember/Memorize` wording, not `Watch`.
 - Room 1 should keep integer timing only: `4s remember`.
 - Room 2 should keep integer timing only: `4s trail`.
+- Room 2 trail sparks should appear at even intervals and without numeric labels on the board.
 - Found counter should be clear, for example `2/4 found`.
 - Sequence counter should be clear, for example `2/5 in order`.
 - Correct and wrong states must not rely only on color:

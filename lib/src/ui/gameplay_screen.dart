@@ -9,6 +9,7 @@ import '../data/settings_repository.dart';
 import '../game/game_rules.dart';
 import '../game/level_config.dart';
 import 'app_chrome.dart';
+import 'level_selection_screen.dart';
 
 enum GamePhase { memorize, recall, won, lost }
 
@@ -207,23 +208,27 @@ class _GameplayScreenState extends State<GameplayScreen> {
       return;
     }
 
+    final interval = duration ~/ remainingCount;
+    final revealInterval =
+        interval <= Duration.zero ? const Duration(milliseconds: 1) : interval;
     _sequenceRevealTimer = Timer.periodic(
-      const Duration(milliseconds: 80),
+      revealInterval,
       (timer) {
         if (!mounted || _phase != GamePhase.memorize) {
           timer.cancel();
           return;
         }
 
-        final elapsed = DateTime.now().difference(_memorizeStartedAt!);
-        final progress =
-            (elapsed.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0);
-        final visible = (startVisible + (remainingCount * progress).ceil())
-            .clamp(1, widget.config.objectCount)
-            .toInt();
+        final visible = (_visibleSequenceCount + 1).clamp(
+          1,
+          widget.config.objectCount,
+        );
 
         if (visible != _visibleSequenceCount) {
           setState(() => _visibleSequenceCount = visible);
+        }
+        if (visible >= widget.config.objectCount) {
+          timer.cancel();
         }
       },
     );
@@ -264,7 +269,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
     }
 
     if (action == _PauseAction.levels) {
-      Navigator.of(context).pop();
+      _openLevelsFromGameplay();
       return;
     }
     if (action == _PauseAction.replay) {
@@ -346,6 +351,13 @@ class _GameplayScreenState extends State<GameplayScreen> {
     final lockedNextMessage = canOpenNext || isFinalLevel
         ? null
         : _lockedNextMessage(nextLevel, progress);
+    final roomUnlockMessage = canOpenNext
+        ? _roomUnlockMessage(
+            currentLevel: widget.config.level,
+            nextLevel: nextLevel,
+          )
+        : null;
+    final nextButtonLabel = roomUnlockMessage == null ? 'Next' : 'Start Trail';
     final stars = starsForMistakes(_mistakes);
     await showDialog<void>(
       context: context,
@@ -359,13 +371,15 @@ class _GameplayScreenState extends State<GameplayScreen> {
             stars: stars,
             isFinalLevel: isFinalLevel,
             lockedNextMessage: lockedNextMessage,
+            roomUnlockMessage: roomUnlockMessage,
+            nextButtonLabel: nextButtonLabel,
             onMenu: () {
               Navigator.of(context).pop();
               Navigator.of(context).popUntil((route) => route.isFirst);
             },
             onLevels: () {
               Navigator.of(context).pop();
-              Navigator.of(context).pop();
+              _openLevelsFromGameplay();
             },
             onReplay: () {
               Navigator.of(context).pop();
@@ -408,6 +422,29 @@ class _GameplayScreenState extends State<GameplayScreen> {
     return null;
   }
 
+  String? _roomUnlockMessage({
+    required int currentLevel,
+    required int nextLevel,
+  }) {
+    final rooms = buildRoomConfigs();
+    RoomConfig? currentRoom;
+    RoomConfig? nextRoom;
+    for (final room in rooms) {
+      if (room.containsLevel(currentLevel)) {
+        currentRoom = room;
+      }
+      if (room.containsLevel(nextLevel)) {
+        nextRoom = room;
+      }
+    }
+    if (currentRoom == null ||
+        nextRoom == null ||
+        currentRoom.id == nextRoom.id) {
+      return null;
+    }
+    return '${nextRoom.name} unlocked! ${nextRoom.subtitle}.';
+  }
+
   Future<void> _showLoseDialog() async {
     await Future<void>.delayed(const Duration(milliseconds: 350));
     if (!mounted) {
@@ -428,7 +465,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
             },
             onLevels: () {
               Navigator.of(context).pop();
-              Navigator.of(context).pop();
+              _openLevelsFromGameplay();
             },
             onReplay: () {
               Navigator.of(context).pop();
@@ -437,6 +474,18 @@ class _GameplayScreenState extends State<GameplayScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _openLevelsFromGameplay() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(
+        builder: (_) => LevelSelectionScreen(
+          progressRepository: widget.progressRepository,
+          settingsRepository: widget.settingsRepository,
+        ),
+      ),
+      (route) => route.isFirst,
     );
   }
 
@@ -1023,7 +1072,6 @@ class _Board extends StatelessWidget {
         final isTarget = targets.contains(index);
         final isCorrect = correct.contains(index);
         final isWrong = wrong.contains(index);
-        final sequenceIndex = targetSequence.indexOf(index);
         final visibleSequenceTargets = mode == LevelMode.sequenceTrail
             ? targetSequence.take(visibleSequenceCount).toSet()
             : targets;
@@ -1034,20 +1082,13 @@ class _Board extends StatelessWidget {
         Color color = const Color(0xFF173A45);
         bool showSpark = false;
         IconData? statusIcon;
-        String? badgeText;
         if (isVisible && isTarget) {
           color = AppColors.surfaceAlt;
           showSpark = true;
-          if (mode == LevelMode.sequenceTrail && sequenceIndex >= 0) {
-            badgeText = '${sequenceIndex + 1}';
-          }
         }
         if (isCorrect) {
           color = const Color(0xFF127865);
           showSpark = true;
-          if (mode == LevelMode.sequenceTrail && sequenceIndex >= 0) {
-            badgeText = '${sequenceIndex + 1}';
-          }
         }
         if (isWrong) {
           color = const Color(0xFF812D3E);
@@ -1060,7 +1101,6 @@ class _Board extends StatelessWidget {
           glowing: isVisible && isTarget,
           showSpark: showSpark,
           statusIcon: statusIcon,
-          badgeText: badgeText,
           isCorrect: isCorrect,
           isWrong: isWrong,
           onTap: () => onTap(index),
@@ -1079,7 +1119,6 @@ class _BoardCell extends StatefulWidget {
     required this.isCorrect,
     required this.isWrong,
     required this.onTap,
-    this.badgeText,
     this.statusIcon,
   });
 
@@ -1089,7 +1128,6 @@ class _BoardCell extends StatefulWidget {
   final bool showSpark;
   final bool isCorrect;
   final bool isWrong;
-  final String? badgeText;
   final IconData? statusIcon;
   final VoidCallback onTap;
 
@@ -1175,45 +1213,10 @@ class _BoardCellState extends State<_BoardCell>
               );
             },
             child: widget.showSpark
-                ? Stack(
+                ? SparkMark(
                     key: const ValueKey('cell-spark'),
-                    alignment: Alignment.center,
-                    children: [
-                      SparkMark(
-                        size: 34,
-                        glowing: widget.isCorrect,
-                      ),
-                      if (widget.badgeText != null)
-                        Positioned(
-                          right: 8,
-                          bottom: 8,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: const Color(0xDD061F22),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                color: const Color(0xAAFFD86B),
-                              ),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 5,
-                                vertical: 1,
-                              ),
-                              child: Text(
-                                widget.badgeText!,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall
-                                    ?.copyWith(
-                                      color: AppColors.gold,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
+                    size: 34,
+                    glowing: widget.isCorrect,
                   )
                 : widget.statusIcon == null
                     ? const SizedBox.shrink(key: ValueKey('cell-empty'))
@@ -1238,6 +1241,8 @@ class _WinDialogContent extends StatefulWidget {
     required this.stars,
     required this.isFinalLevel,
     required this.lockedNextMessage,
+    required this.roomUnlockMessage,
+    required this.nextButtonLabel,
     required this.onMenu,
     required this.onLevels,
     required this.onReplay,
@@ -1248,6 +1253,8 @@ class _WinDialogContent extends StatefulWidget {
   final int stars;
   final bool isFinalLevel;
   final String? lockedNextMessage;
+  final String? roomUnlockMessage;
+  final String nextButtonLabel;
   final VoidCallback onMenu;
   final VoidCallback onLevels;
   final VoidCallback onReplay;
@@ -1340,6 +1347,17 @@ class _WinDialogContentState extends State<_WinDialogContent>
                 'Congratulations! You completed all available levels.',
                 textAlign: TextAlign.center,
               ),
+            ] else if (widget.roomUnlockMessage != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                widget.roomUnlockMessage!,
+                key: const ValueKey('win-room-unlock-message'),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.gold,
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
             ] else if (widget.lockedNextMessage != null) ...[
               const SizedBox(height: 16),
               Text(
@@ -1361,7 +1379,7 @@ class _WinDialogContentState extends State<_WinDialogContent>
                   onPressed: widget.onNext!,
                   icon: Icons.arrow_forward_rounded,
                   style: _DialogActionStyle.primary,
-                  child: const Text('Next'),
+                  child: Text(widget.nextButtonLabel),
                 ),
               ),
               const SizedBox(height: 8),
@@ -1500,7 +1518,12 @@ class _DialogActionButton extends StatelessWidget {
             children: [
               Icon(icon),
               const SizedBox(width: 8),
-              child,
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: child,
+                ),
+              ),
             ],
           );
 

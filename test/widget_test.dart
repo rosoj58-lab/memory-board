@@ -438,8 +438,7 @@ void main() {
     expect(find.text('Completed 1/60'), findsOneWidget);
   });
 
-  testWidgets('returning to levels highlights the newly unlocked level',
-      (tester) async {
+  testWidgets('returning to levels shows refreshed progress', (tester) async {
     final repository = repositoryWithCompletedTutorial();
     await tester.pumpWidget(
       testApp(progressRepository: repository),
@@ -466,10 +465,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Levels'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('level-unlocked-pulse-2')),
-      findsOneWidget,
-    );
+    expect(find.text('1/30 levels | 3/90 stars'), findsOneWidget);
+    expect(find.byKey(const ValueKey('level-tile-2')), findsOneWidget);
   });
 
   testWidgets('three wrong taps show the lose dialog', (tester) async {
@@ -521,8 +518,16 @@ void main() {
     expect(find.text('Memorize the spark trail'), findsOneWidget);
     expect(find.text('3-step trail'), findsOneWidget);
     expect(find.text('4s trail'), findsOneWidget);
+    expect(find.byKey(const ValueKey('cell-spark')), findsOneWidget);
+    expect(find.text('1'), findsNothing);
 
-    await tester.pump(const Duration(seconds: 4));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byKey(const ValueKey('cell-spark')), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 1200));
+    expect(find.byKey(const ValueKey('cell-spark')), findsNWidgets(2));
+
+    await tester.pump(const Duration(seconds: 2));
     await tester.pump();
 
     expect(find.text('Repeat the trail in order'), findsOneWidget);
@@ -551,6 +556,91 @@ void main() {
     final progress = await repository.load();
     expect(progress.starsForLevel(31), 2);
     expect(progress.isLevelUnlocked(32), isTrue);
+  });
+
+  testWidgets('level thirty announces room two unlock', (tester) async {
+    final repository = repositoryWithProgress(
+      PlayerProgress(
+        highestUnlockedLevel: 30,
+        bestStarsByLevel: roomTwoUnlockStars(),
+        tutorialCompleted: true,
+      ),
+    );
+    final config = buildLevelConfigs()[29];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameplayScreen(
+          config: config,
+          progressRepository: repository,
+          settingsRepository: InMemorySettingsRepository(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump();
+
+    final targets = generateTargets(
+      level: config.level,
+      gridSize: config.gridSize,
+      objectCount: config.objectCount,
+    );
+    for (final target in targets) {
+      await tester.tap(find.byKey(ValueKey('board-cell-$target')));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Level complete'), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('win-room-unlock-message')), findsOneWidget);
+    expect(
+      find.text('Spark Trail unlocked! Repeat the glowing path in order.'),
+      findsOneWidget,
+    );
+    expect(find.text('Start Trail'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('win-next-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Level 31'), findsOneWidget);
+    expect(find.text('Memorize the spark trail'), findsOneWidget);
+  });
+
+  testWidgets('win levels button opens refreshed level selection',
+      (tester) async {
+    final repository = repositoryWithCompletedTutorial();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameplayScreen(
+          config: buildLevelConfigs().first,
+          progressRepository: repository,
+          settingsRepository: InMemorySettingsRepository(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump();
+
+    final targets = generateTargets(level: 1, gridSize: 3, objectCount: 3);
+    for (final target in targets) {
+      await tester.tap(find.byKey(ValueKey('board-cell-$target')));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('win-levels-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Levels'), findsOneWidget);
+    expect(find.text('1/30 levels | 3/90 stars'), findsOneWidget);
+    expect(find.byKey(const ValueKey('level-tile-2')), findsOneWidget);
   });
 
   testWidgets('room gate explains why next level is locked', (tester) async {
