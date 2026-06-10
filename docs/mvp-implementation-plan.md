@@ -398,12 +398,12 @@ Exit criteria:
 
 ### Milestone 6: Animation and Reward Pass
 
-Status: planned.
+Status: active.
 
-- Add sequential star reveal
-- Add small win particles
+- Add sequential star reveal: implemented
+- Add small win particles: implemented
 - Add Next button pulse in win popup
-- Improve heart loss animation
+- Improve heart loss animation: implemented with shake, burst, and clearer broken-heart state
 - Add subtle logo/background motion
 
 Exit criteria:
@@ -491,7 +491,6 @@ Android phone testing still remains required because haptics, APK install, and t
 
 - Stronger progress presentation
 - Room unlock flow when Room 2 becomes playable
-- Heart loss animation and clearer lost-heart state
 - Sequential star reveal
 - Win particles
 - Stronger popup dim

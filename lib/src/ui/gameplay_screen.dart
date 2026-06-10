@@ -416,6 +416,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
                             final active = index < maxHearts - _mistakes;
                             return _HeartIndicator(
                               active: active,
+                              recentlyLost:
+                                  !active && index == maxHearts - _mistakes,
                               index: index,
                             );
                           }),
@@ -554,28 +556,143 @@ String _formatSeconds(Duration duration) {
   return '${seconds.toStringAsFixed(1)}s';
 }
 
-class _HeartIndicator extends StatelessWidget {
+class _HeartIndicator extends StatefulWidget {
   const _HeartIndicator({
     required this.active,
+    required this.recentlyLost,
     required this.index,
   });
 
   final bool active;
+  final bool recentlyLost;
   final int index;
 
   @override
+  State<_HeartIndicator> createState() => _HeartIndicatorState();
+}
+
+class _HeartIndicatorState extends State<_HeartIndicator>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _lossController;
+
+  @override
+  void initState() {
+    super.initState();
+    _lossController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 460),
+    );
+    if (widget.recentlyLost) {
+      _lossController.forward();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _HeartIndicator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.recentlyLost && widget.recentlyLost) {
+      _lossController.forward(from: 0);
+    }
+    if (oldWidget.active != widget.active && widget.active) {
+      _lossController.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _lossController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 220),
-      transitionBuilder: (child, animation) {
-        return ScaleTransition(scale: animation, child: child);
-      },
-      child: Icon(
-        active ? Icons.favorite : Icons.heart_broken,
-        key: ValueKey('heart-$index-$active'),
-        color: active ? AppColors.danger : Colors.white38,
+    return SizedBox(
+      width: 34,
+      height: 34,
+      child: AnimatedBuilder(
+        animation: _lossController,
+        builder: (context, child) {
+          final value = Curves.easeOut.transform(_lossController.value);
+          final shake = widget.recentlyLost
+              ? math.sin(value * math.pi * 5) * (1 - value) * 5
+              : 0.0;
+          final scale =
+              widget.recentlyLost ? 1 + math.sin(value * math.pi) * 0.18 : 1.0;
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              if (widget.recentlyLost)
+                CustomPaint(
+                  size: const Size(34, 34),
+                  painter: _HeartLossBurstPainter(value),
+                ),
+              Transform.translate(
+                offset: Offset(shake, 0),
+                child: Transform.scale(scale: scale, child: child),
+              ),
+            ],
+          );
+        },
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          transitionBuilder: (child, animation) {
+            final scale = Tween<double>(begin: 0.72, end: 1).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+            );
+            return FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(scale: scale, child: child),
+            );
+          },
+          child: Icon(
+            widget.active ? Icons.favorite_rounded : Icons.heart_broken_rounded,
+            key: ValueKey('heart-${widget.index}-${widget.active}'),
+            color: widget.active ? AppColors.danger : const Color(0xFF8FB1B2),
+            size: widget.active ? 31 : 30,
+            shadows: widget.active
+                ? const [
+                    Shadow(color: Color(0x55FF6B78), blurRadius: 9),
+                  ]
+                : null,
+          ),
+        ),
       ),
     );
+  }
+}
+
+class _HeartLossBurstPainter extends CustomPainter {
+  const _HeartLossBurstPainter(this.progress);
+
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress <= 0 || progress >= 1) {
+      return;
+    }
+
+    final center = size.center(Offset.zero);
+    final paint = Paint()
+      ..color = AppColors.danger.withAlpha(((1 - progress) * 150).toInt())
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 2;
+    const rays = 7;
+    for (var index = 0; index < rays; index += 1) {
+      final angle = -math.pi / 2 + index * (math.pi * 2 / rays);
+      final startRadius = 8 + progress * 3;
+      final endRadius = 11 + progress * 11;
+      final start = center +
+          Offset(math.cos(angle) * startRadius, math.sin(angle) * startRadius);
+      final end = center +
+          Offset(math.cos(angle) * endRadius, math.sin(angle) * endRadius);
+      canvas.drawLine(start, end, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _HeartLossBurstPainter oldDelegate) {
+    return oldDelegate.progress != progress;
   }
 }
 
