@@ -402,7 +402,7 @@ Status: active.
 
 - Add sequential star reveal: implemented
 - Add small win particles: implemented
-- Add Next button pulse in win popup
+- Add Next button pulse in win popup: implemented as a one-shot pulse
 - Improve heart loss animation: implemented with shake, burst, and clearer broken-heart state
 - Add subtle logo/background motion
 

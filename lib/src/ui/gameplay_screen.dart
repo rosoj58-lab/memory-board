@@ -1127,6 +1127,10 @@ class _WinDialogContentState extends State<_WinDialogContent>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
+        final nextPulseProgress =
+            ((_controller.value - 0.66) / 0.34).clamp(0.0, 1.0);
+        final nextButtonScale =
+            1 + math.sin(nextPulseProgress * math.pi) * 0.045;
         return Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -1185,12 +1189,15 @@ class _WinDialogContentState extends State<_WinDialogContent>
             ],
             const SizedBox(height: 22),
             if (widget.onNext != null) ...[
-              _DialogActionButton(
-                key: const ValueKey('win-next-button'),
-                onPressed: widget.onNext!,
-                icon: Icons.arrow_forward_rounded,
-                style: _DialogActionStyle.primary,
-                child: const Text('Next'),
+              Transform.scale(
+                scale: nextButtonScale,
+                child: _DialogActionButton(
+                  key: const ValueKey('win-next-button'),
+                  onPressed: widget.onNext!,
+                  icon: Icons.arrow_forward_rounded,
+                  style: _DialogActionStyle.primary,
+                  child: const Text('Next'),
+                ),
               ),
               const SizedBox(height: 8),
             ] else ...[
