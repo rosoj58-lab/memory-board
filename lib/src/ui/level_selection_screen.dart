@@ -84,39 +84,12 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                       ),
                     ),
                   ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    sliver: SliverGrid.builder(
-                      itemCount: levels.length,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 5,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                      ),
-                      itemBuilder: (context, index) {
-                        final config = levels[index];
-                        final unlocked = progress.isLevelUnlocked(config.level);
-                        final stars = progress.starsForLevel(config.level);
-                        final current = unlocked &&
-                            stars == 0 &&
-                            config.level == progress.highestUnlockedLevel;
-                        return _LevelTile(
-                          level: config.level,
-                          unlocked: unlocked,
-                          current: current,
-                          highlighted: _highlightedLevel == config.level,
-                          stars: stars,
-                          onPressed: unlocked
-                              ? () => _openLevel(
-                                    config: config,
-                                    progress: progress,
-                                  )
-                              : null,
-                        );
-                      },
+                  for (final room in rooms)
+                    ..._buildRoomLevelSlivers(
+                      room: room,
+                      levels: levels,
+                      progress: progress,
                     ),
-                  ),
                 ],
               );
             },
@@ -124,6 +97,64 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildRoomLevelSlivers({
+    required RoomConfig room,
+    required List<LevelConfig> levels,
+    required PlayerProgress progress,
+  }) {
+    final roomLevels = levels.where((level) => room.containsLevel(level.level));
+    if (roomLevels.isEmpty) {
+      return const <Widget>[];
+    }
+
+    final levelList = roomLevels.toList(growable: false);
+    final roomUnlocked =
+        room.available && progress.totalStars >= room.unlockStars;
+    final current = room.containsLevel(progress.highestUnlockedLevel);
+
+    return [
+      SliverToBoxAdapter(
+        child: _LevelSectionHeader(
+          room: room,
+          unlocked: roomUnlocked,
+          current: current,
+        ),
+      ),
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+        sliver: SliverGrid.builder(
+          itemCount: levelList.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 5,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+          ),
+          itemBuilder: (context, index) {
+            final config = levelList[index];
+            final unlocked = progress.isLevelUnlocked(config.level);
+            final stars = progress.starsForLevel(config.level);
+            final currentLevel = unlocked &&
+                stars == 0 &&
+                config.level == progress.highestUnlockedLevel;
+            return _LevelTile(
+              level: config.level,
+              unlocked: unlocked,
+              current: currentLevel,
+              highlighted: _highlightedLevel == config.level,
+              stars: stars,
+              onPressed: unlocked
+                  ? () => _openLevel(
+                        config: config,
+                        progress: progress,
+                      )
+                  : null,
+            );
+          },
+        ),
+      ),
+    ];
   }
 
   Future<void> _openLevel({
@@ -188,7 +219,7 @@ class _NextChallengePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final objectLabel = config.objectCount == 1 ? 'spark' : 'sparks';
+    final primaryMetric = _primaryChallengeMetric(config);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
       child: DecoratedBox(
@@ -237,13 +268,15 @@ class _NextChallengePanel extends StatelessWidget {
                     value: '${config.gridSize}x${config.gridSize}',
                   ),
                   _SummaryMetric(
-                    icon: Icons.auto_awesome_rounded,
-                    label: 'Find',
-                    value: '${config.objectCount} $objectLabel',
+                    icon: primaryMetric.icon,
+                    label: primaryMetric.label,
+                    value: primaryMetric.value,
                   ),
                   _SummaryMetric(
                     icon: Icons.timer_rounded,
-                    label: 'Remember',
+                    label: config.mode == LevelMode.sequenceTrail
+                        ? 'Trail'
+                        : 'Remember',
                     value: _formatSeconds(config.showTime),
                   ),
                 ],
@@ -253,6 +286,138 @@ class _NextChallengePanel extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _ChallengeMetricData {
+  const _ChallengeMetricData({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+}
+
+_ChallengeMetricData _primaryChallengeMetric(LevelConfig config) {
+  switch (config.mode) {
+    case LevelMode.sequenceTrail:
+      return _ChallengeMetricData(
+        icon: Icons.route_rounded,
+        label: 'Repeat',
+        value: '${config.objectCount}-step trail',
+      );
+    case LevelMode.objectFilter:
+      return const _ChallengeMetricData(
+        icon: Icons.filter_alt_rounded,
+        label: 'Pick',
+        value: 'target objects',
+      );
+    case LevelMode.hiddenSet:
+      final objectLabel = config.objectCount == 1 ? 'spark' : 'sparks';
+      return _ChallengeMetricData(
+        icon: Icons.auto_awesome_rounded,
+        label: 'Find',
+        value: '${config.objectCount} $objectLabel',
+      );
+  }
+}
+
+class _LevelSectionHeader extends StatelessWidget {
+  const _LevelSectionHeader({
+    required this.room,
+    required this.unlocked,
+    required this.current,
+  });
+
+  final RoomConfig room;
+  final bool unlocked;
+  final bool current;
+
+  @override
+  Widget build(BuildContext context) {
+    final locked = !unlocked;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      child: Row(
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: locked ? Colors.white12 : AppColors.surface.withAlpha(220),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: current ? AppColors.gold : const Color(0x333DEFD6),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(9),
+              child: Icon(
+                _roomIcon(room.mode, locked: locked),
+                color: locked ? Colors.white54 : AppColors.gold,
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Room ${room.id} · ${room.name}',
+                  key: ValueKey('level-section-room-${room.id}'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: locked ? Colors.white60 : Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  locked
+                      ? 'Unlock at ${room.unlockStars} stars'
+                      : '${room.levelStart}-${room.levelEnd} · ${_modeCopy(room.mode)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: locked ? Colors.white54 : AppColors.textSoft,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+IconData _roomIcon(LevelMode mode, {required bool locked}) {
+  if (locked) {
+    return Icons.lock_rounded;
+  }
+  switch (mode) {
+    case LevelMode.hiddenSet:
+      return Icons.grid_view_rounded;
+    case LevelMode.sequenceTrail:
+      return Icons.route_rounded;
+    case LevelMode.objectFilter:
+      return Icons.filter_alt_rounded;
+  }
+}
+
+String _modeCopy(LevelMode mode) {
+  switch (mode) {
+    case LevelMode.hiddenSet:
+      return 'Find hidden sparks';
+    case LevelMode.sequenceTrail:
+      return 'Repeat the trail in order';
+    case LevelMode.objectFilter:
+      return 'Pick requested objects';
   }
 }
 

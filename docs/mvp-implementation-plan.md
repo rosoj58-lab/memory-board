@@ -145,6 +145,10 @@ The screen starts with compact room cards:
 - Playable rooms: Room 1 and Room 2, progress shown as completed levels and stars.
 - Room 2 remains locked until the player has 80 total stars.
 - Locked planned room: Room 3, with unlock target copy.
+- Level grids are grouped by playable room, so Room 1 levels 1-30 and Room 2 levels 31-60 are visually distinct.
+- The Next challenge panel uses room-aware wording:
+  - Room 1: `Find N sparks`, `Remember 4s`
+  - Room 2: `Repeat N-step trail`, `Trail 4s`
 
 Level tiles must have distinct states:
 

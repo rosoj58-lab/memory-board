@@ -129,6 +129,34 @@ void main() {
     expect(find.text('Remember the glowing tiles'), findsOneWidget);
   });
 
+  testWidgets('room two next challenge uses trail wording', (tester) async {
+    await tester.pumpWidget(
+      testApp(progressRepository: repositoryWithUnlockedLevels(31)),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('menu-levels-button')));
+    await tester.pumpAndSettle();
+    await tester.pump();
+
+    expect(find.text('Level 31'), findsOneWidget);
+    expect(find.text('Board 3x3'), findsOneWidget);
+    expect(find.text('Repeat 3-step trail'), findsOneWidget);
+    expect(find.text('Trail 4s'), findsOneWidget);
+    expect(find.text('Find 3 sparks'), findsNothing);
+    expect(find.byKey(const ValueKey('level-section-room-1')), findsOneWidget);
+
+    final roomTwoHeader = find.byKey(const ValueKey('level-section-room-2'));
+    for (var attempt = 0;
+        attempt < 6 && roomTwoHeader.evaluate().isEmpty;
+        attempt += 1) {
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -500));
+      await tester.pumpAndSettle();
+    }
+
+    expect(find.text('Room 2 · Spark Trail'), findsOneWidget);
+    expect(find.text('31-60 · Repeat the trail in order'), findsOneWidget);
+  });
+
   testWidgets('settings dialog persists the vibration toggle', (tester) async {
     final settingsRepository = InMemorySettingsRepository();
     await tester.pumpWidget(
