@@ -404,7 +404,7 @@ Status: active.
 - Add small win particles: implemented
 - Add Next button pulse in win popup: implemented as a one-shot pulse
 - Improve heart loss animation: implemented with shake, burst, and clearer broken-heart state
-- Add subtle logo/background motion
+- Add subtle logo/background motion: logo motion implemented as a one-shot ambient pulse; background remains static for battery and test stability
 
 Exit criteria:
 

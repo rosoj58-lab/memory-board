@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 class AppColors {
@@ -84,6 +86,97 @@ class SparkMark extends StatelessWidget {
         painter: const _SparkPainter(),
       ),
     );
+  }
+}
+
+class AmbientSparkMark extends StatefulWidget {
+  const AmbientSparkMark({
+    this.size = 92,
+    super.key,
+  });
+
+  final double size;
+
+  @override
+  State<AmbientSparkMark> createState() => _AmbientSparkMarkState();
+}
+
+class _AmbientSparkMarkState extends State<AmbientSparkMark>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final progress = Curves.easeOutCubic.transform(_controller.value);
+        final pulse = math.sin(progress * math.pi);
+        return SizedBox.square(
+          dimension: widget.size + 28,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CustomPaint(
+                size: Size.square(widget.size + 28),
+                painter: _SparkHaloPainter(pulse),
+              ),
+              Transform.scale(
+                scale: 1 + pulse * 0.035,
+                child: child,
+              ),
+            ],
+          ),
+        );
+      },
+      child: SparkMark(size: widget.size, glowing: true),
+    );
+  }
+}
+
+class _SparkHaloPainter extends CustomPainter {
+  const _SparkHaloPainter(this.progress);
+
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress <= 0) {
+      return;
+    }
+
+    final center = size.center(Offset.zero);
+    final paint = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          Color.fromARGB((70 * progress).toInt(), 255, 216, 107),
+          Color.fromARGB((38 * progress).toInt(), 136, 227, 208),
+          const Color(0x00061F22),
+        ],
+        stops: const [0.0, 0.48, 1.0],
+      ).createShader(Offset.zero & size);
+
+    canvas.drawCircle(center, size.width * (0.24 + progress * 0.10), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _SparkHaloPainter oldDelegate) {
+    return oldDelegate.progress != progress;
   }
 }
 

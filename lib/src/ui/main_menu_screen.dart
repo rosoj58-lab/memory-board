@@ -129,7 +129,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with RouteAware {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const Center(
-                          child: SparkMark(size: 92, glowing: true),
+                          child: AmbientSparkMark(size: 92),
                         ),
                         const SizedBox(height: 24),
                         Text(
