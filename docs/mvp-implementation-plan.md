@@ -40,6 +40,7 @@ The first release should not include endless mode, playable multiple object type
   - Action: open Level Selection
 - Result popup:
   - Win: `Next` primary, `Replay` secondary, `Levels/Menu` tertiary
+  - Win at a room gate: explain the missing stars and make `Levels` primary
   - Lose: `Replay` primary, `Levels/Menu` tertiary
 - Reset progress:
   - Lives in Settings with a confirmation dialog

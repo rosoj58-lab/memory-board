@@ -520,6 +520,57 @@ void main() {
     expect(progress.isLevelUnlocked(32), isTrue);
   });
 
+  testWidgets('room gate explains why next level is locked', (tester) async {
+    final repository = repositoryWithProgress(
+      PlayerProgress(
+        highestUnlockedLevel: 30,
+        bestStarsByLevel: <int, int>{
+          for (var level = 1; level <= 29; level += 1) level: 1,
+        },
+        tutorialCompleted: true,
+      ),
+    );
+    final config = buildLevelConfigs()[29];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameplayScreen(
+          config: config,
+          progressRepository: repository,
+          settingsRepository: InMemorySettingsRepository(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump();
+
+    final targets = generateTargets(
+      level: config.level,
+      gridSize: config.gridSize,
+      objectCount: config.objectCount,
+    );
+    for (final target in targets) {
+      await tester.tap(find.byKey(ValueKey('board-cell-$target')));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Level complete'), findsOneWidget);
+    expect(find.byKey(const ValueKey('win-next-button')), findsNothing);
+    expect(find.byKey(const ValueKey('win-levels-button')), findsOneWidget);
+    expect(
+      find.text('Earn 48 more stars to unlock Spark Trail.'),
+      findsOneWidget,
+    );
+
+    final progress = await repository.load();
+    expect(progress.highestUnlockedLevel, 30);
+    expect(progress.isLevelUnlocked(31), isFalse);
+  });
+
   testWidgets('level sixty completes the available MVP levels', (tester) async {
     final repository = repositoryWithUnlockedLevels(60);
     await tester.pumpWidget(

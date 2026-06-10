@@ -343,6 +343,9 @@ class _GameplayScreenState extends State<GameplayScreen> {
     final isFinalLevel = widget.config.level == maxImplementedLevel;
     final nextLevel = widget.config.level + 1;
     final canOpenNext = !isFinalLevel && progress.isLevelUnlocked(nextLevel);
+    final lockedNextMessage = canOpenNext || isFinalLevel
+        ? null
+        : _lockedNextMessage(nextLevel, progress);
     final stars = starsForMistakes(_mistakes);
     await showDialog<void>(
       context: context,
@@ -355,6 +358,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
             title: isFinalLevel ? 'All levels complete' : 'Level complete',
             stars: stars,
             isFinalLevel: isFinalLevel,
+            lockedNextMessage: lockedNextMessage,
             onMenu: () {
               Navigator.of(context).pop();
               Navigator.of(context).popUntil((route) => route.isFirst);
@@ -385,6 +389,23 @@ class _GameplayScreenState extends State<GameplayScreen> {
         );
       },
     );
+  }
+
+  String? _lockedNextMessage(int nextLevel, PlayerProgress progress) {
+    final rooms = buildRoomConfigs();
+    for (final room in rooms) {
+      if (!room.containsLevel(nextLevel)) {
+        continue;
+      }
+      if (!room.available) {
+        return '${room.name} is coming in a future update.';
+      }
+      final missingStars = room.unlockStars - progress.totalStars;
+      if (missingStars > 0) {
+        return 'Earn $missingStars more stars to unlock ${room.name}.';
+      }
+    }
+    return null;
   }
 
   Future<void> _showLoseDialog() async {
@@ -1216,6 +1237,7 @@ class _WinDialogContent extends StatefulWidget {
     required this.title,
     required this.stars,
     required this.isFinalLevel,
+    required this.lockedNextMessage,
     required this.onMenu,
     required this.onLevels,
     required this.onReplay,
@@ -1225,6 +1247,7 @@ class _WinDialogContent extends StatefulWidget {
   final String title;
   final int stars;
   final bool isFinalLevel;
+  final String? lockedNextMessage;
   final VoidCallback onMenu;
   final VoidCallback onLevels;
   final VoidCallback onReplay;
@@ -1316,6 +1339,17 @@ class _WinDialogContentState extends State<_WinDialogContent>
               const Text(
                 'Congratulations! You completed all available levels.',
                 textAlign: TextAlign.center,
+              ),
+            ] else if (widget.lockedNextMessage != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                widget.lockedNextMessage!,
+                key: const ValueKey('win-locked-next-message'),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSoft,
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
             ],
             const SizedBox(height: 22),
